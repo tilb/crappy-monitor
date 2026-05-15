@@ -1,0 +1,69 @@
+name: MurkyMonitor
+options:
+  bundleIdPrefix: com.murkymonitor
+  deploymentTarget:
+    macOS: "13.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    SWIFT_VERSION: "5.9"
+    ENABLE_HARDENED_RUNTIME: YES
+
+targets:
+  MurkyMonitor:
+    type: application
+    platform: macOS
+    bundleIdSuffix: app
+    info:
+      path: MurkyMonitor/Resources/Info.plist
+      properties:
+        LSUIElement: true
+        NSSupportsAutomaticGraphicsSwitching: true
+        NSPrincipalClass: NSApplication
+        LSMinimumSystemVersion: "13.0"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.murkymonitor.app
+        INFOPLIST_FILE: MurkyMonitor/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: MurkyMonitor/Resources/MurkyMonitor.entitlements
+        SWIFT_OBJC_BRIDGING_HEADER: ""
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+    sources:
+      - path: MurkyMonitor
+        excludes:
+          - "**/*.entitlements"
+
+  MurkyMonitorTests:
+    type: bundle.unit-test
+    platform: macOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.murkymonitor.tests
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/MurkyMonitor.app/Contents/MacOS/MurkyMonitor"
+        GENERATE_INFOPLIST_FILE: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks"
+    sources:
+      - path: MurkyMonitorTests
+    dependencies:
+      - target: MurkyMonitor
+
+schemes:
+  MurkyMonitor:
+    build:
+      targets:
+        MurkyMonitor: all
+        MurkyMonitorTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - MurkyMonitorTests
+    profile:
+      config: Release
+    archive:
+      config: Release

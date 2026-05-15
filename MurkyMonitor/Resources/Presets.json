@@ -1,0 +1,92 @@
+[
+  {
+    "id": "dell-u2412m",
+    "name": "Dell U2412M (office IPS)",
+    "brightness": -0.03,
+    "contrast": 0.90,
+    "colorTempShift": 6700,
+    "gammaExponent": 1.05,
+    "blackLevel": 0.01,
+    "gammaDrift": 0.0
+  },
+  {
+    "id": "hp-elitedisplay-e231",
+    "name": "HP EliteDisplay E231 (TN)",
+    "brightness": -0.10,
+    "contrast": 0.78,
+    "colorTempShift": 7000,
+    "gammaExponent": 0.95,
+    "blackLevel": 0.03,
+    "gammaDrift": 0.12
+  },
+  {
+    "id": "lenovo-thinkvision-t23i",
+    "name": "Lenovo ThinkVision T23i",
+    "brightness": -0.05,
+    "contrast": 0.88,
+    "colorTempShift": 6500,
+    "gammaExponent": 1.02,
+    "blackLevel": 0.01,
+    "gammaDrift": 0.0
+  },
+  {
+    "id": "lg-22m38a",
+    "name": "LG 22M38A (cheap TN)",
+    "brightness": -0.15,
+    "contrast": 0.72,
+    "colorTempShift": 7500,
+    "gammaExponent": 0.92,
+    "blackLevel": 0.04,
+    "gammaDrift": 0.18
+  },
+  {
+    "id": "failure-crushed-blacks",
+    "name": "Crushed blacks (common TN)",
+    "brightness": -0.08,
+    "contrast": 0.68,
+    "colorTempShift": 7200,
+    "gammaExponent": 0.88,
+    "blackLevel": 0.02,
+    "gammaDrift": 0.20
+  },
+  {
+    "id": "failure-dim-backlight",
+    "name": "Faded backlight (aging LCD)",
+    "brightness": -0.22,
+    "contrast": 0.75,
+    "colorTempShift": 5000,
+    "gammaExponent": 0.96,
+    "blackLevel": 0.05,
+    "gammaDrift": 0.05
+  },
+  {
+    "id": "failure-office-tn-washout",
+    "name": "Cool office TN washout",
+    "brightness": -0.12,
+    "contrast": 0.70,
+    "colorTempShift": 7000,
+    "gammaExponent": 0.92,
+    "blackLevel": 0.04,
+    "gammaDrift": 0.15
+  },
+  {
+    "id": "intellivue-mp40-ward",
+    "name": "Philips IntelliVue MP40 (5 yr)",
+    "brightness": -0.09,
+    "contrast": 0.85,
+    "colorTempShift": 5900,
+    "gammaExponent": 0.95,
+    "blackLevel": 0.02,
+    "gammaDrift": 0.04
+  },
+  {
+    "id": "intellivue-mx450-icu",
+    "name": "Philips IntelliVue MX450 (8 yr)",
+    "brightness": -0.18,
+    "contrast": 0.72,
+    "colorTempShift": 5100,
+    "gammaExponent": 0.88,
+    "blackLevel": 0.06,
+    "gammaDrift": 0.10
+  }
+]
