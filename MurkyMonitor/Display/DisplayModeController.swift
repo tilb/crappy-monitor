@@ -7,10 +7,13 @@ class DisplayModeController {
         activeDisplays().contains { hasLowResMode(for: $0) }
     }
 
-    func apply() {
+    // Returns true if the mode switch succeeded on at least one display.
+    @discardableResult
+    func apply() -> Bool {
         let opts = [kCGDisplayShowDuplicateLowResolutionModes: kCFBooleanTrue] as CFDictionary
         var config: CGDisplayConfigRef?
         CGBeginDisplayConfiguration(&config)
+        var anyConfigured = false
         for display in activeDisplays() {
             guard let current = CGDisplayCopyDisplayMode(display),
                   let all = CGDisplayCopyAllDisplayModes(display, opts) as? [CGDisplayMode],
@@ -20,8 +23,15 @@ class DisplayModeController {
             else { continue }
             savedModes[display] = current
             CGConfigureDisplayWithDisplayMode(config, display, target, nil)
+            anyConfigured = true
         }
-        CGCompleteDisplayConfiguration(config, .forAppOnly)
+        guard anyConfigured else { return false }
+        let result = CGCompleteDisplayConfiguration(config, .forAppOnly)
+        if result != .success {
+            // Roll back savedModes so restore() doesn't attempt a no-op.
+            savedModes.removeAll()
+        }
+        return result == .success
     }
 
     func restore() {

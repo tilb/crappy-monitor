@@ -7,7 +7,12 @@
     "colorTempShift": 6700,
     "gammaExponent": 1.05,
     "blackLevel": 0.01,
-    "gammaDrift": 0.0
+    "gammaDrift": 0.0,
+    "year": 2011,
+    "resolution": "1920x1200",
+    "dpi": 94,
+    "refreshHz": 60,
+    "simulateLowDpi": true
   },
   {
     "id": "hp-elitedisplay-e231",
@@ -17,7 +22,12 @@
     "colorTempShift": 7000,
     "gammaExponent": 0.95,
     "blackLevel": 0.03,
-    "gammaDrift": 0.12
+    "gammaDrift": 0.12,
+    "year": 2012,
+    "resolution": "1920x1080",
+    "dpi": 96,
+    "refreshHz": 60,
+    "simulateLowDpi": true
   },
   {
     "id": "lenovo-thinkvision-t23i",
@@ -27,7 +37,12 @@
     "colorTempShift": 6500,
     "gammaExponent": 1.02,
     "blackLevel": 0.01,
-    "gammaDrift": 0.0
+    "gammaDrift": 0.0,
+    "year": 2016,
+    "resolution": "1920x1080",
+    "dpi": 96,
+    "refreshHz": 60,
+    "simulateLowDpi": true
   },
   {
     "id": "lg-22m38a",
@@ -37,7 +52,12 @@
     "colorTempShift": 7500,
     "gammaExponent": 0.92,
     "blackLevel": 0.04,
-    "gammaDrift": 0.18
+    "gammaDrift": 0.18,
+    "year": 2014,
+    "resolution": "1920x1080",
+    "dpi": 102,
+    "refreshHz": 60,
+    "simulateLowDpi": true
   },
   {
     "id": "failure-crushed-blacks",
@@ -47,7 +67,12 @@
     "colorTempShift": 7200,
     "gammaExponent": 0.88,
     "blackLevel": 0.02,
-    "gammaDrift": 0.20
+    "gammaDrift": 0.20,
+    "year": 2008,
+    "resolution": "1920x1080",
+    "dpi": 92,
+    "refreshHz": 60,
+    "simulateLowDpi": true
   },
   {
     "id": "failure-dim-backlight",
@@ -57,7 +82,12 @@
     "colorTempShift": 5000,
     "gammaExponent": 0.96,
     "blackLevel": 0.05,
-    "gammaDrift": 0.05
+    "gammaDrift": 0.05,
+    "year": 2011,
+    "resolution": "1920x1080",
+    "dpi": 92,
+    "refreshHz": 60,
+    "simulateLowDpi": true
   },
   {
     "id": "failure-office-tn-washout",
@@ -67,7 +97,12 @@
     "colorTempShift": 7000,
     "gammaExponent": 0.92,
     "blackLevel": 0.04,
-    "gammaDrift": 0.15
+    "gammaDrift": 0.15,
+    "year": 2005,
+    "resolution": "1280x1024",
+    "dpi": 96,
+    "refreshHz": 60,
+    "simulateLowDpi": true
   },
   {
     "id": "intellivue-mp40-ward",
@@ -77,7 +112,12 @@
     "colorTempShift": 5900,
     "gammaExponent": 0.95,
     "blackLevel": 0.02,
-    "gammaDrift": 0.04
+    "gammaDrift": 0.04,
+    "year": 2007,
+    "resolution": "800x600",
+    "dpi": 83,
+    "refreshHz": 60,
+    "simulateLowDpi": true
   },
   {
     "id": "intellivue-mx450-icu",
@@ -87,6 +127,11 @@
     "colorTempShift": 5100,
     "gammaExponent": 0.88,
     "blackLevel": 0.06,
-    "gammaDrift": 0.10
+    "gammaDrift": 0.10,
+    "year": 2012,
+    "resolution": "1024x768",
+    "dpi": 85,
+    "refreshHz": 60,
+    "simulateLowDpi": true
   }
 ]

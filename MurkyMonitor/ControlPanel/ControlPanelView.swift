@@ -1,24 +1,101 @@
 import SwiftUI
 
+// Pure functions — unit-testable without SwiftUI.
+func shouldShowDpiBanner(
+    activePresetID: String?,
+    presets: [DegradationPreset],
+    pixelSimulation: Bool,
+    lowResModeAvailable: Bool
+) -> Bool {
+    guard lowResModeAvailable,
+          !pixelSimulation,
+          let id = activePresetID,
+          let preset = presets.first(where: { $0.id == id })
+    else { return false }
+    return preset.simulateLowDpi
+}
+
+func shouldShowReversePixelBanner(
+    activePresetID: String?,
+    presets: [DegradationPreset],
+    pixelSimulation: Bool
+) -> Bool {
+    guard pixelSimulation,
+          let id = activePresetID,
+          let preset = presets.first(where: { $0.id == id })
+    else { return pixelSimulation }
+    return !preset.simulateLowDpi
+}
+
 struct ControlPanelView: View {
     @EnvironmentObject var settings: FilterSettings
     @EnvironmentObject var presetsStore: PresetsStore
-    // Default to Presets tab — it's the product; Filters are secondary refinement.
     @State private var selectedTab = 1
+
+    private var showDpiBanner: Bool {
+        shouldShowDpiBanner(
+            activePresetID: settings.activePresetID,
+            presets: presetsStore.presets,
+            pixelSimulation: settings.pixelSimulation,
+            lowResModeAvailable: settings.lowResModeAvailable
+        )
+    }
+
+    private var showReversePixelBanner: Bool {
+        shouldShowReversePixelBanner(
+            activePresetID: settings.activePresetID,
+            presets: presetsStore.presets,
+            pixelSimulation: settings.pixelSimulation
+        )
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             // A/B compare banner — shown while ⌥ is held.
             if settings.isABActive {
-                HStack(spacing: 6) {
-                    Image(systemName: "eye")
-                    Text("Comparing — release ⌥ to restore simulation")
+                bannerView(
+                    icon: "eye",
+                    text: "Comparing — release ⌥ to restore simulation",
+                    color: .accentColor
+                )
+            }
+
+            // DPI opt-in banner — shown when the active preset recommends low-DPI simulation.
+            if showDpiBanner {
+                HStack(spacing: 8) {
+                    Image(systemName: "display")
+                        .imageScale(.small)
+                    Text("This monitor was \(currentPresetDpi) DPI. Enable non-retina simulation?")
                         .font(.caption)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Toggle("", isOn: $settings.pixelSimulation)
+                        .toggleStyle(.switch)
+                        .labelsHidden()
+                        .controlSize(.mini)
                 }
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Color.accentColor.opacity(0.15))
-                .foregroundStyle(Color.accentColor)
+                .background(Color.orange.opacity(0.12))
+                .foregroundStyle(Color.orange)
+            }
+
+            // Reverse banner — shown when pixel simulation is on for a preset that doesn't call for it.
+            if showReversePixelBanner {
+                HStack(spacing: 8) {
+                    Image(systemName: "display.trianglebadge.exclamationmark")
+                        .imageScale(.small)
+                    Text("Non-retina simulation is active — disable?")
+                        .font(.caption)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Toggle("", isOn: $settings.pixelSimulation)
+                        .toggleStyle(.switch)
+                        .labelsHidden()
+                        .controlSize(.mini)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.secondary.opacity(0.1))
+                .foregroundStyle(.secondary)
             }
 
             // Header
@@ -53,6 +130,27 @@ struct ControlPanelView: View {
             Spacer()
         }
         .frame(width: 320, height: 480)
+    }
+
+    private var currentPresetDpi: String {
+        guard let id = settings.activePresetID,
+              let preset = presetsStore.presets.first(where: { $0.id == id }),
+              let dpi = preset.dpi
+        else { return "low" }
+        return "\(dpi)"
+    }
+
+    @ViewBuilder
+    private func bannerView(icon: String, text: String, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+            Text(text)
+                .font(.caption)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .background(color.opacity(0.15))
+        .foregroundStyle(color)
     }
 }
 

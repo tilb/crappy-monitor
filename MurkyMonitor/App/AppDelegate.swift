@@ -44,13 +44,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] enabled in
                 guard let self else { return }
                 if enabled {
-                    self.displayModeController.apply()
+                    let success = self.displayModeController.apply()
+                    if !success {
+                        // Mode switch failed (e.g. no low-res mode available). Reset
+                        // the toggle so the UI reflects actual display state.
+                        self.filterSettings.pixelSimulation = false
+                        return
+                    }
                     self.pixelGridController.apply()
                 } else {
                     self.displayModeController.restore()
                     self.pixelGridController.remove()
                 }
             }
+
+        // Refresh lowResModeAvailable when the display configuration changes
+        // (hotplug, clamshell open/close, sleep-wake).
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.filterSettings.lowResModeAvailable = self.displayModeController.isAvailable
+            self.displayModeController.purgeStaleModes()
+        }
 
         // Apply initial gamma state.
         gammaController.apply(settings: filterSettings)
