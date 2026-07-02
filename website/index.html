@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crappy Monitor — See your app through your user's eyes</title>
+<meta name="description" content="Crappy Monitor is a macOS menu bar app that makes your beautiful Apple display look like the aging office monitor your users actually have. Real presets, real gamma curves, one keystroke to compare.">
+
+<meta property="og:title" content="Crappy Monitor">
+<meta property="og:description" content="See your app through your user's eyes. A macOS app that simulates the crappy monitors your users actually have.">
+<meta property="og:image" content="https://crappymonitor.ernestmistiaen.com/assets/cover.jpg">
+<meta property="og:url" content="https://crappymonitor.ernestmistiaen.com/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%23121a14'/%3E%3Ccircle cx='16' cy='15' r='9' fill='none' stroke='%237af08a' stroke-width='2'/%3E%3Ccircle cx='13' cy='13' r='1.4' fill='%237af08a'/%3E%3Ccircle cx='19' cy='13' r='1.4' fill='%237af08a'/%3E%3Cpath d='M12 20 q4 -3 8 0' fill='none' stroke='%237af08a' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --screen: #131b15;
+  --screen-deep: #0d130e;
+  --phosphor: #7af08a;
+  --phosphor-dim: #4a9457;
+  --wall: #b7c2ae;
+  --paper: #efe9d8;
+  --paper-edge: #d8d0b8;
+  --ink: #2b2b26;
+  --ink-soft: #5a584e;
+  --sticky: #f2d967;
+  --sticky-pink: #f0a8b8;
+  --red: #c0392b;
+  --maxw: 1060px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  background: var(--screen);
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+::selection { background: var(--phosphor); color: var(--screen-deep); }
+
+a { color: inherit; }
+
+.pixel { font-family: "VT323", monospace; }
+
+/* ---------- hero (the CRT) ---------- */
+
+.hero {
+  position: relative;
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 10%, #1d2a1f 0%, var(--screen) 55%, var(--screen-deep) 100%);
+  color: var(--phosphor);
+  overflow: hidden;
+  text-align: center;
+  padding: 4.5rem 1.5rem 0;
+}
+
+/* scanlines */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 0px,
+    rgba(0,0,0,0) 2px,
+    rgba(0,0,0,0.22) 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+.hero-inner { position: relative; z-index: 1; max-width: var(--maxw); margin: 0 auto; }
+
+.boot-line {
+  color: var(--phosphor-dim);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 2.2rem;
+}
+
+h1 {
+  font-family: "VT323", monospace;
+  font-size: clamp(3.4rem, 10vw, 7rem);
+  line-height: 0.95;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 18px rgba(122, 240, 138, 0.45), 0 0 2px rgba(122, 240, 138, 0.9);
+  text-transform: uppercase;
+}
+
+h1 .cursor {
+  display: inline-block;
+  width: 0.45em;
+  height: 0.78em;
+  margin-left: 0.08em;
+  background: var(--phosphor);
+  animation: blink 1.1s steps(1) infinite;
+  vertical-align: baseline;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+.tagline {
+  font-family: "VT323", monospace;
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+  color: var(--phosphor);
+  opacity: 0.85;
+  margin-top: 1.2rem;
+}
+
+.subline {
+  max-width: 620px;
+  margin: 1.4rem auto 0;
+  color: #a8c9ad;
+  font-size: 0.95rem;
+}
+
+.cta-row {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2.4rem;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.85rem 1.6rem;
+  font-family: "VT323", monospace;
+  font-size: 1.35rem;
+  text-decoration: none;
+  border: 2px solid var(--phosphor);
+  letter-spacing: 0.05em;
+}
+
+.btn-primary {
+  background: var(--phosphor);
+  color: var(--screen-deep);
+  box-shadow: 0 0 22px rgba(122, 240, 138, 0.35);
+}
+.btn-primary:hover { background: #93ff9f; border-color: #93ff9f; }
+
+.btn-ghost { color: var(--phosphor); background: transparent; }
+.btn-ghost:hover { background: rgba(122, 240, 138, 0.12); }
+
+.cta-note {
+  margin-top: 0.9rem;
+  font-size: 0.8rem;
+  color: var(--phosphor-dim);
+}
+
+.hero-art {
+  position: relative;
+  z-index: 1;
+  max-width: var(--maxw);
+  margin: 3.5rem auto 0;
+}
+
+.hero-art img {
+  display: block;
+  width: 100%;
+  border: 3px solid #3a4438;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 -10px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------- paper sections ---------- */
+
+.paper {
+  background: var(--paper);
+  background-image:
+    radial-gradient(circle at 18% 30%, rgba(120, 100, 60, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 82% 70%, rgba(120, 100, 60, 0.07) 0%, transparent 45%);
+  border-top: 6px solid #3a4438;
+}
+
+section { padding: 4.5rem 1.5rem; }
+.inner { max-width: var(--maxw); margin: 0 auto; }
+
+h2 {
+  font-family: "VT323", monospace;
+  font-size: clamp(2rem, 5vw, 2.9rem);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 1.6rem;
+}
+
+h2 .tick { color: var(--red); }
+
+.lede { max-width: 640px; font-size: 1.02rem; }
+.lede + .lede { margin-top: 1rem; }
+.lede strong { background: var(--sticky); padding: 0 0.25em; }
+
+/* problem section: poster + copy */
+.problem-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3rem;
+  align-items: center;
+}
+
+.poster {
+  background: #fdfbf4;
+  border: 1px solid var(--paper-edge);
+  padding: 1.8rem 2rem;
+  box-shadow: 3px 4px 0 rgba(60, 55, 40, 0.18);
+  transform: rotate(2deg);
+  text-align: center;
+  min-width: 230px;
+}
+.poster .big {
+  font-family: "VT323", monospace;
+  font-size: 2.4rem;
+  color: #1f2d5c;
+  line-height: 1;
+}
+.poster .small {
+  font-family: "VT323", monospace;
+  font-size: 1.5rem;
+  color: var(--red);
+  margin-top: 0.4rem;
+}
+.poster .pin {
+  width: 12px; height: 12px;
+  background: #b8bcc4;
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  box-shadow: inset -2px -2px 3px rgba(0,0,0,0.3);
+}
+
+/* features */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.4rem;
+  margin-top: 2.4rem;
+}
+
+.card {
+  background: #fdfbf4;
+  border: 1px solid var(--paper-edge);
+  box-shadow: 3px 4px 0 rgba(60, 55, 40, 0.14);
+  padding: 1.5rem 1.6rem;
+}
+
+.card h3 {
+  font-family: "VT323", monospace;
+  font-size: 1.55rem;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.02em;
+}
+
+.card p { font-size: 0.9rem; color: var(--ink-soft); }
+.card kbd {
+  font-family: inherit;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.05em 0.45em;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+/* sticky notes */
+.sticky {
+  background: var(--sticky);
+  padding: 1.1rem 1.3rem;
+  font-family: "VT323", monospace;
+  font-size: 1.3rem;
+  line-height: 1.25;
+  box-shadow: 2px 4px 8px rgba(60, 55, 40, 0.25);
+  transform: rotate(-1.5deg);
+  display: inline-block;
+}
+.sticky.pink { background: var(--sticky-pink); transform: rotate(1.8deg); }
+
+/* ---------- presets terminal ---------- */
+
+.terminal-wrap { background: var(--screen-deep); border-top: 6px solid #3a4438; }
+
+.terminal-wrap h2 { color: var(--phosphor); text-shadow: 0 0 12px rgba(122,240,138,0.35); }
+.terminal-wrap .lede { color: #a8c9ad; }
+
+.term {
+  margin-top: 2.2rem;
+  border: 2px solid #2c3a2e;
+  border-radius: 8px;
+  background: var(--screen);
+  overflow-x: auto;
+  box-shadow: 0 0 40px rgba(122, 240, 138, 0.07), inset 0 0 60px rgba(0,0,0,0.5);
+}
+
+.term-bar {
+  padding: 0.5rem 1rem;
+  border-bottom: 2px solid #2c3a2e;
+  color: var(--phosphor-dim);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  color: var(--phosphor);
+  min-width: 640px;
+}
+
+th, td { text-align: left; padding: 0.65rem 1.1rem; white-space: nowrap; }
+th {
+  color: var(--phosphor-dim);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  border-bottom: 1px solid #2c3a2e;
+}
+tbody tr { border-bottom: 1px solid #1c261e; }
+tbody tr:hover { background: rgba(122, 240, 138, 0.06); }
+td.dim { color: var(--phosphor-dim); }
+
+.term-foot {
+  padding: 0.8rem 1.1rem;
+  color: var(--phosphor-dim);
+  font-size: 0.8rem;
+}
+
+/* ---------- download ---------- */
+
+.dl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.4rem;
+  margin-top: 2.4rem;
+  align-items: start;
+}
+
+.dl-card { position: relative; }
+
+.dl-card .btn-dark {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.7rem 1.4rem;
+  font-family: "VT323", monospace;
+  font-size: 1.3rem;
+  text-decoration: none;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+}
+.dl-card .btn-dark:hover { background: #443f35; }
+
+.dl-card .btn-dark.disabled {
+  background: transparent;
+  color: var(--ink-soft);
+  border-style: dashed;
+  cursor: default;
+}
+
+pre.brew {
+  margin-top: 1rem;
+  background: var(--screen-deep);
+  color: var(--phosphor);
+  padding: 0.9rem 1.1rem;
+  font-size: 0.85rem;
+  overflow-x: auto;
+  border-radius: 6px;
+}
+
+.reqs { margin-top: 2rem; font-size: 0.85rem; color: var(--ink-soft); }
+
+/* ---------- footer ---------- */
+
+footer {
+  background: var(--screen-deep);
+  color: var(--phosphor-dim);
+  border-top: 6px solid #3a4438;
+  padding: 2.5rem 1.5rem;
+  font-size: 0.85rem;
+  text-align: center;
+}
+footer a { color: var(--phosphor); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+@media (max-width: 760px) {
+  .problem-grid { grid-template-columns: 1fr; }
+  .poster { justify-self: center; }
+  section { padding: 3.2rem 1.2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="hero-inner">
+    <p class="boot-line">CRAPPYMON BIOS v1.0 &nbsp;·&nbsp; 640K RAM OK &nbsp;·&nbsp; DEGRADING DISPLAY…</p>
+    <h1>Crappy<br>Monitor<span class="cursor"></span></h1>
+    <p class="tagline">See your app through your user's eyes.</p>
+    <p class="subline">You design on a gorgeous Apple display. Your users are squinting at a
+      washed-out TN panel from 2012. Crappy Monitor degrades <em>your</em> screen so you can
+      catch what they can't see — before they can't see it.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/tilb/crappy-monitor/releases/latest">▼ Download for macOS</a>
+      <a class="btn btn-ghost" href="https://github.com/tilb/crappy-monitor">Source on GitHub</a>
+    </div>
+    <p class="cta-note">Free · macOS 13+ · Menu bar app · No account, no telemetry, no nonsense</p>
+  </div>
+  <div class="hero-art">
+    <img src="assets/cover.jpg" alt="A grimy beige CRT monitor with little arms and legs, slumped at a messy developer desk. Its green phosphor screen reads: Crappy Monitor — see your app through your user's eyes." width="1536" height="1024">
+  </div>
+</header>
+
+<!-- ============ PROBLEM ============ -->
+<div class="paper">
+  <section>
+    <div class="inner problem-grid">
+      <div>
+        <h2><span class="tick">✓</span> Your monitor is lying to you</h2>
+        <p class="lede">That subtle grey-on-white label? Invisible. That elegant dark-mode
+          gradient? A block of mud. That carefully tuned brand color? Three clicks warmer and
+          two stops dimmer on the hospital-issue panel it actually ships to.</p>
+        <p class="lede">In healthcare, logistics, retail, factories and front desks everywhere,
+          real work happens on <strong>aging, uncalibrated, low-DPI monitors</strong>. Crappy
+          Monitor recreates them on your Mac — with real gamma curves, not an Instagram filter —
+          so contrast bugs show up in design review instead of a support ticket.</p>
+      </div>
+      <div class="poster">
+        <div class="pin"></div>
+        <div class="big">LOOKS GREAT<br>ON MY MAC.</div>
+        <div class="small">NO ONE ELSE HAS YOUR MAC.</div>
+      </div>
+    </div>
+  </section>
+
+<!-- ============ FEATURES ============ -->
+  <section style="padding-top: 0;">
+    <div class="inner">
+      <h2>What it does</h2>
+      <div class="features">
+        <div class="card">
+          <h3>Real display degradation</h3>
+          <p>Applies actual gamma table manipulation at the display level — brightness, contrast,
+            color temperature, gamma drift and black-level lift — so every app on your screen
+            degrades, not just a screenshot.</p>
+        </div>
+        <div class="card">
+          <h3>Presets from real monitors</h3>
+          <p>Profiles grounded in ICC data and measured failure modes of real office hardware —
+            from the beloved Dell U2412M to a washed-out TN panel from 2005, plus patient monitors
+            aged five and eight years.</p>
+        </div>
+        <div class="card">
+          <h3>Hold <kbd>⌥</kbd> to compare</h3>
+          <p>Hold the Option key to snap back to your pristine display. Release to return to
+            crappy reality. Instant A/B, no permission dialogs, works from any app.</p>
+        </div>
+        <div class="card">
+          <h3>Low-DPI simulation</h3>
+          <p>Your Retina screen packs 4× the pixels of a 96&nbsp;DPI office panel. Crappy Monitor
+            simulates coarse pixel grids so your hairline borders and 10px labels get the reality
+            check they deserve.</p>
+        </div>
+        <div class="card">
+          <h3>Lives in the menu bar</h3>
+          <p>A tiny menu bar control panel with sliders and presets. Toggle it on for a design
+            review, off when you're done. Crash-safe: your display is always restored.</p>
+        </div>
+        <div class="card">
+          <h3>Built for design reviews</h3>
+          <p>Load a preset, walk through your critical flows, and ask one question: can I still
+            read everything and tell every state apart? If not, your users can't either.</p>
+        </div>
+      </div>
+      <p style="margin-top: 2.5rem;">
+        <span class="sticky">Fix contrast bugs<br>before QA files them →</span>
+        &nbsp;&nbsp;
+        <span class="sticky pink">Your users will<br>never thank you.<br>That's the point.</span>
+      </p>
+    </div>
+  </section>
+</div>
+
+<!-- ============ PRESETS ============ -->
+<div class="terminal-wrap">
+  <section>
+    <div class="inner">
+      <h2>&gt; ls /presets</h2>
+      <p class="lede">Nine ways your interface is quietly falling apart out there.</p>
+      <div class="term">
+        <div class="term-bar">CRAPPY-MONITOR — PRESET LIBRARY — 9 PROFILES LOADED</div>
+        <table>
+          <thead>
+            <tr><th>Preset</th><th>Vintage</th><th>Native res</th><th>DPI</th><th>What breaks</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Dell U2412M (office IPS)</td><td class="dim">2011</td><td class="dim">1920×1200</td><td class="dim">94</td><td class="dim">subtle greys, thin type</td></tr>
+            <tr><td>HP EliteDisplay E231 (TN)</td><td class="dim">2012</td><td class="dim">1920×1080</td><td class="dim">96</td><td class="dim">midtone crush, cool cast</td></tr>
+            <tr><td>Lenovo ThinkVision T23i</td><td class="dim">2016</td><td class="dim">1920×1080</td><td class="dim">96</td><td class="dim">the "fine, I guess" baseline</td></tr>
+            <tr><td>LG 22M38A (cheap TN)</td><td class="dim">2014</td><td class="dim">1920×1080</td><td class="dim">102</td><td class="dim">contrast collapse, blue shift</td></tr>
+            <tr><td>Crushed blacks (common TN)</td><td class="dim">2008</td><td class="dim">1920×1080</td><td class="dim">92</td><td class="dim">dark-mode details vanish</td></tr>
+            <tr><td>Faded backlight (aging LCD)</td><td class="dim">2011</td><td class="dim">1920×1080</td><td class="dim">92</td><td class="dim">everything dim &amp; warm</td></tr>
+            <tr><td>Cool office TN washout</td><td class="dim">2005</td><td class="dim">1280×1024</td><td class="dim">96</td><td class="dim">pale UI turns invisible</td></tr>
+            <tr><td>Philips IntelliVue MP40 (5 yr)</td><td class="dim">2007</td><td class="dim">800×600</td><td class="dim">83</td><td class="dim">clinical UI at bedside</td></tr>
+            <tr><td>Philips IntelliVue MX450 (8 yr)</td><td class="dim">2012</td><td class="dim">1024×768</td><td class="dim">85</td><td class="dim">eight hard years of ICU duty</td></tr>
+          </tbody>
+        </table>
+        <div class="term-foot">// values derived from ICC profiles &amp; documented panel failure modes — not vibes</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ DOWNLOAD ============ -->
+<div class="paper">
+  <section id="download">
+    <div class="inner">
+      <h2>Get it</h2>
+      <div class="dl-grid">
+        <div class="card dl-card">
+          <h3>Download the app</h3>
+          <p>Signed &amp; notarized DMG, straight from GitHub Releases. Drag to Applications,
+            click the menu bar icon, pick a preset, feel bad about your contrast choices.</p>
+          <a class="btn-dark" href="https://github.com/tilb/crappy-monitor/releases/latest">▼ Download .dmg</a>
+        </div>
+        <div class="card dl-card">
+          <h3>Or use Homebrew</h3>
+          <p>For people who install everything from the terminal (you know who you are):</p>
+          <pre class="brew">brew install --cask crappy-monitor</pre>
+        </div>
+        <div class="card dl-card">
+          <h3>Source code</h3>
+          <p>Crappy Monitor is going open source. The repo is getting a final tidy-up before it
+            opens to the public — star it now and you'll see it the moment it does.</p>
+          <a class="btn-dark" href="https://github.com/tilb/crappy-monitor">★ Watch on GitHub</a>
+        </div>
+      </div>
+      <p class="reqs">Requires macOS 13 Ventura or later · Apple Silicon &amp; Intel ·
+        Not on the App Store (sandboxing forbids the display-level tricks that make this work) ·
+        No data leaves your machine, because none is collected.</p>
+    </div>
+  </section>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <p>CRAPPY MONITOR — made with mild resentment toward pristine displays by
+    <a href="mailto:hi@ernestmistiaen.com">Ernest Mistiaen</a></p>
+  <p style="margin-top: 0.5rem;">© 2026 · your display will be restored on quit. promise.</p>
+</footer>
+
+</body>
+</html>

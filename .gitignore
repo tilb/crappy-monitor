@@ -3,3 +3,4 @@
 !*.xcworkspace/contents.xcworkspacedata
 DerivedData/
 .DS_Store
+.gstack/
