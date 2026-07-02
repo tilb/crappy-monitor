@@ -107,17 +107,9 @@ h1 .cursor {
 }
 @keyframes blink { 50% { opacity: 0; } }
 
-.tagline {
-  font-family: "VT323", monospace;
-  font-size: clamp(1.3rem, 3vw, 1.9rem);
-  color: var(--phosphor);
-  opacity: 0.85;
-  margin-top: 1.2rem;
-}
-
 .subline {
   max-width: 620px;
-  margin: 1.4rem auto 0;
+  margin: 1.6rem auto 0;
   color: #a8c9ad;
   font-size: 0.95rem;
 }
@@ -166,10 +158,22 @@ h1 .cursor {
 .hero-art img {
   display: block;
   width: 100%;
+  height: auto; /* beat the height="" presentational hint so aspect-ratio applies */
+  aspect-ratio: 1744 / 902;
+  object-fit: cover;
+  object-position: center;
   border: 3px solid #3a4438;
   border-bottom: none;
   border-radius: 10px 10px 0 0;
   box-shadow: 0 -10px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* narrow screens: crop the desk clutter at the edges, keep the CRT centered */
+@media (max-width: 700px) {
+  .hero-art img { aspect-ratio: 4 / 3; }
+}
+@media (max-width: 460px) {
+  .hero-art img { aspect-ratio: 1 / 1; }
 }
 
 /* ---------- paper sections ---------- */
@@ -403,7 +407,6 @@ footer a:hover { text-decoration: underline; }
   <div class="hero-inner">
     <p class="boot-line">CRAPPYMON BIOS v1.0 &nbsp;·&nbsp; 640K RAM OK &nbsp;·&nbsp; DEGRADING DISPLAY…</p>
     <h1>Crappy<br>Monitor<span class="cursor"></span></h1>
-    <p class="tagline">See your app through your user's eyes.</p>
     <p class="subline">You design on a gorgeous Apple display. Your users are squinting at a
       washed-out TN panel from 2012. Crappy Monitor degrades <em>your</em> screen so you can
       catch what they can't see — before they can't see it.</p>
@@ -414,7 +417,7 @@ footer a:hover { text-decoration: underline; }
     <p class="cta-note">Free · macOS 13+ · Menu bar app · No account, no telemetry, no nonsense</p>
   </div>
   <div class="hero-art">
-    <img src="assets/cover.jpg" alt="A grimy beige CRT monitor with little arms and legs, slumped at a messy developer desk. Its green phosphor screen reads: Crappy Monitor — see your app through your user's eyes." width="1536" height="1024">
+    <img src="assets/cover.jpg" alt="A grimy beige CRT monitor with little cartoon arms and legs, slumped at a cluttered developer desk under a lamp — surrounded by sticky notes, stained coffee mugs and programming books. Its green phosphor screen reads: Crappy Monitor — see your app through your user's eyes." width="1744" height="902">
   </div>
 </header>
 
