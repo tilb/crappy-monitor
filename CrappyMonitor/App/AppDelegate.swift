@@ -104,12 +104,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 filterSettings.isABActive = true
                 gammaController.restore()
                 pixelGridController.remove()
-                statusItem?.button?.title = " ⌥MM"
+                statusItem?.button?.title = " ⌥CM"
             } else {
                 filterSettings.isABActive = false
                 gammaController.apply(settings: filterSettings)
                 if filterSettings.pixelSimulation { pixelGridController.apply() }
-                statusItem?.button?.title = " MM"
+                statusItem?.button?.title = " CM"
             }
         }
 
@@ -129,8 +129,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         guard let button = statusItem?.button else { return }
         button.image = NSImage(systemSymbolName: "display.trianglebadge.exclamationmark",
-                               accessibilityDescription: "MurkyMonitor")
-        button.title = " MM"
+                               accessibilityDescription: "Crappy Monitor")
+        button.title = " CM"
         button.imagePosition = .imageLeft
 
         let menu = NSMenu()
@@ -160,7 +160,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                      keyEquivalent: ",")
             .target = self
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit MurkyMonitor",
+        menu.addItem(NSMenuItem(title: "Quit Crappy Monitor",
                                 action: #selector(NSApplication.terminate(_:)),
                                 keyEquivalent: "q"))
 
@@ -188,7 +188,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "MurkyMonitor — Control Panel"
+        window.title = "Crappy Monitor — Control Panel"
         window.styleMask = [.titled, .closable]
         window.setContentSize(NSSize(width: 320, height: 480))
         window.center()

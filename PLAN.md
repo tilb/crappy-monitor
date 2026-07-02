@@ -1,8 +1,8 @@
-<!-- /autoplan restore point: /Users/ernestmistiaen/.gstack/projects/murky-monitor/main-autoplan-restore-20260514-220816.md -->
+<!-- /autoplan restore point: /Users/ernestmistiaen/.gstack/projects/crappy-monitor/main-autoplan-restore-20260514-220816.md -->
 
-# MurkyMonitor — Real-World Fidelity Improvements
+# CrappyMonitor — Real-World Fidelity Improvements
 
-**Goal:** Improve MurkyMonitor to better match how real-world monitors actually look and behave. The app works, but the gamma math is a rough approximation and the presets are healthcare-specific inventions. We want presets grounded in real ICC data and physics-accurate color science.
+**Goal:** Improve CrappyMonitor to better match how real-world monitors actually look and behave. The app works, but the gamma math is a rough approximation and the presets are healthcare-specific inventions. We want presets grounded in real ICC data and physics-accurate color science.
 
 **Context:**
 - Existing macOS Swift/SwiftUI app that applies gamma manipulation via `CGSetDisplayTransferByTable`
@@ -13,7 +13,7 @@
 - Color temp uses linear approximation centered at 6500K
 - Gamma uses simple `pow(v, gammaExponent)` curve
 
-**Design doc:** `~/.gstack/projects/murky-monitor/ernestmistiaen-main-design-20260514-213915.md`
+**Design doc:** `~/.gstack/projects/crappy-monitor/ernestmistiaen-main-design-20260514-213915.md`
 
 ---
 
@@ -41,7 +41,7 @@ CGDisplayRestoreColorSyncSettings()
 ```
 This is idempotent on clean launches and a safety net on crashes.
 
-**Files:** `MurkyMonitor/App/AppDelegate.swift`
+**Files:** `CrappyMonitor/App/AppDelegate.swift`
 
 ### 1. A/B Compare Toggle (Priority: High — was priority 4)
 
@@ -49,7 +49,7 @@ When holding the Option key, momentarily restore the display to its real state. 
 
 **Implementation:**
 - Add `private var isABActive: Bool = false` on `AppDelegate` (main-thread only)
-- Add BOTH a global monitor (`NSEvent.addGlobalMonitorForEvents`) AND a local monitor (`NSEvent.addLocalMonitorForEvents`) for `.flagsChanged` — global fires when other apps are frontmost; local fires when MurkyMonitor is frontmost. Both needed.
+- Add BOTH a global monitor (`NSEvent.addGlobalMonitorForEvents`) AND a local monitor (`NSEvent.addLocalMonitorForEvents`) for `.flagsChanged` — global fires when other apps are frontmost; local fires when CrappyMonitor is frontmost. Both needed.
 - In the flagsChanged handler (dispatched to `DispatchQueue.main`):
   - If Option down AND `!isABActive`: set `isABActive = true`, call `gammaController.restore()`, hide PixelGrid overlays, update icon title to "⌥ MM"
   - If Option up AND `isABActive`: set `isABActive = false`, call `gammaController.apply(settings:)`, restore PixelGrid if `pixelSimulation` is on, reset icon title to " MM"
@@ -63,9 +63,9 @@ When holding the Option key, momentarily restore the display to its real state. 
   ```
 - Add menu bar item "Hold ⌥ to Compare" as disabled `NSMenuItem` (informational text, not clickable fallback)
 - Store both monitor tokens; cancel both in `applicationWillTerminate`
-- If `addGlobalMonitorForEvents` returns nil: log warning; the local monitor still covers the common case (MurkyMonitor frontmost)
+- If `addGlobalMonitorForEvents` returns nil: log warning; the local monitor still covers the common case (CrappyMonitor frontmost)
 
-**Files:** `MurkyMonitor/App/AppDelegate.swift`
+**Files:** `CrappyMonitor/App/AppDelegate.swift`
 
 ### 2. Real-World Preset Data (Priority: High — contingent on spike result)
 
@@ -80,7 +80,7 @@ Replace invented preset values with values derived from ICC profile data for spe
 
 **Data source:** TFTCentral ICC profile database. Extract tone curve data manually from ColorSync Utility (research spike).
 
-**Files:** `MurkyMonitor/Resources/Presets.json`
+**Files:** `CrappyMonitor/Resources/Presets.json`
 
 ### 2. Color Temperature Math Accuracy (Priority: High)
 
@@ -106,7 +106,7 @@ This is a rough linear approximation. Real monitors have specific white point ch
 - Apply Bradford CAT with D65 reference white — compute the 3×3 adaptation matrix ONCE per `buildTables()` call, not per sample, to avoid 256 matrix inversions
 - Clamp final per-channel multipliers to a reasonable range (e.g., [0.5, 1.5]) before applying; negative CAT outputs at extreme temperatures must be floored to 0
 
-**Files:** `MurkyMonitor/Display/GammaController.swift`
+**Files:** `CrappyMonitor/Display/GammaController.swift`
 
 ### 3. Gamma Curve Fidelity (Priority: Medium)
 
@@ -126,7 +126,7 @@ Parameters `threshold`, `linear_coefficient`, `a`, `offset` derived from ICC ton
 
 Also: add a `gammaDrift` parameter (float 0.0–0.5) simulating the gamma shift of aging TN panels (midtone crush).
 
-**Files:** `MurkyMonitor/Display/GammaController.swift`, `MurkyMonitor/Filters/DegradationPreset.swift`, `MurkyMonitor/Filters/FilterSettings.swift`, `MurkyMonitor/Resources/Presets.json`
+**Files:** `CrappyMonitor/Display/GammaController.swift`, `CrappyMonitor/Filters/DegradationPreset.swift`, `CrappyMonitor/Filters/FilterSettings.swift`, `CrappyMonitor/Resources/Presets.json`
 
 ### 5. PixelGrid Fidelity (Priority: Low — deferred)
 
@@ -139,7 +139,7 @@ Real low-DPI simulation needs:
 
 **Proposed improvement:** Add a `targetPPI` parameter to PixelGridController. Compute step = (devicePPI / targetPPI) * scaleFactor. Add optional RGB stripe simulation mode.
 
-**Files:** `MurkyMonitor/Display/PixelGridController.swift`, `MurkyMonitor/Filters/FilterSettings.swift`
+**Files:** `CrappyMonitor/Display/PixelGridController.swift`, `CrappyMonitor/Filters/FilterSettings.swift`
 
 ---
 
@@ -147,14 +147,14 @@ Real low-DPI simulation needs:
 
 | File | Change |
 |------|--------|
-| `MurkyMonitor/Resources/Presets.json` | Replace invented values with ICC-derived data + add 4 office presets |
-| `MurkyMonitor/Display/GammaController.swift` | Replace linear color temp approx with Kang et al. formula; add parameterized gamma toe |
-| `MurkyMonitor/Filters/DegradationPreset.swift` | Add `gammaDrift` and `threshold` fields |
-| `MurkyMonitor/Filters/FilterSettings.swift` | Add `gammaDrift`, `threshold`, `targetPPI` published properties |
-| `MurkyMonitor/App/AppDelegate.swift` | Add Option-key A/B toggle global event monitor |
-| `MurkyMonitor/Display/PixelGridController.swift` | Parameterize pixel pitch to target PPI |
-| `MurkyMonitor/ControlPanel/ControlPanelView.swift` | Change default picker tab to "Presets"; add A/B active banner ("Comparing — release ⌥"); grey out pixelSimulation toggle when DisplayModeController.isAvailable == false |
-| `MurkyMonitor/ControlPanel/PresetListView.swift` | Add checkmark to active preset; add empty-state view when preset list is empty |
+| `CrappyMonitor/Resources/Presets.json` | Replace invented values with ICC-derived data + add 4 office presets |
+| `CrappyMonitor/Display/GammaController.swift` | Replace linear color temp approx with Kang et al. formula; add parameterized gamma toe |
+| `CrappyMonitor/Filters/DegradationPreset.swift` | Add `gammaDrift` and `threshold` fields |
+| `CrappyMonitor/Filters/FilterSettings.swift` | Add `gammaDrift`, `threshold`, `targetPPI` published properties |
+| `CrappyMonitor/App/AppDelegate.swift` | Add Option-key A/B toggle global event monitor |
+| `CrappyMonitor/Display/PixelGridController.swift` | Parameterize pixel pitch to target PPI |
+| `CrappyMonitor/ControlPanel/ControlPanelView.swift` | Change default picker tab to "Presets"; add A/B active banner ("Comparing — release ⌥"); grey out pixelSimulation toggle when DisplayModeController.isAvailable == false |
+| `CrappyMonitor/ControlPanel/PresetListView.swift` | Add checkmark to active preset; add empty-state view when preset list is empty |
 
 ---
 
@@ -164,7 +164,7 @@ Without a distribution path, all improvements reach zero users.
 
 - **GitHub Releases:** Upload notarized DMG on each release tag
 - **Developer ID notarization:** Sign with Apple Developer ID, notarize via `xcrun notarytool`, staple ticket
-- **Homebrew cask:** Submit `murky-monitor.rb` to homebrew-cask (community-maintained)
+- **Homebrew cask:** Submit `crappy-monitor.rb` to homebrew-cask (community-maintained)
 - **NOT App Store:** App Store requires sandboxing, incompatible with CGSetDisplayTransferByTable
 - **CI:** GitHub Actions for build + notarization. Manual trigger for now (no CD pipeline needed at v1).
 
@@ -221,7 +221,7 @@ Without a distribution path, all improvements reach zero users.
 | 17 | Design | Add checkmark to active preset in PresetListView | Mechanical | P1 | No selection state means users can't tell what's applied | No state |
 | 18 | Design | Remove ControlPanelView/gammaDrift slider from scope | Mechanical | P5 | Contradicted by audit decision #6; keep UI simple | Add slider |
 | 19 | Design | "Hold ⌥ to Compare" as disabled NSMenuItem (info text) | Mechanical | P5 | Menu toggle fallback must be explicitly sticky vs momentary | Toggle item |
-| 20 | Eng | A/B toggle: isABActive flag + suppress Combine sink + both global and local monitors | Mechanical | P5 | Race condition between NSEvent handler and objectWillChange sink; global monitor silent when MurkyMonitor frontmost | Simple global only |
+| 20 | Eng | A/B toggle: isABActive flag + suppress Combine sink + both global and local monitors | Mechanical | P5 | Race condition between NSEvent handler and objectWillChange sink; global monitor silent when CrappyMonitor frontmost | Simple global only |
 | 21 | Eng | Kang formula: Double precision, piecewise 1667-4000K and 4000-25000K, Bradford matrix once per call, clamp multipliers | Mechanical | P1 | Single-polynomial or Float implementation produces visible tint error near 6500K D65 | Single polynomial |
 | 22 | Eng | NSApplication.didChangeScreenParametersNotification: purge stale display IDs from savedModes | Mechanical | P2 | Display hotplug leaves stale CGDirectDisplayID; restore() silently fails on reconnect | Skip |
 | 23 | Eng | Gamma toe: reset threshold to nil when user moves slider after preset load | Mechanical | P5 | Preset threshold + manual gammaExponent creates inconsistent toe/body combination | Keep threshold always |

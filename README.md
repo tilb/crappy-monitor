@@ -38,24 +38,21 @@ that make this work. No data leaves your machine; none is collected.
 
 ```sh
 brew install xcodegen   # if you don't have it
-xcodegen generate       # regenerates MurkyMonitor.xcodeproj from project.yml
-open MurkyMonitor.xcodeproj
+xcodegen generate       # regenerates CrappyMonitor.xcodeproj from project.yml
+open CrappyMonitor.xcodeproj
 ```
 
-Then build & run the `MurkyMonitor` scheme in Xcode.
-
-> Note: the project is named `MurkyMonitor` internally — that's the original
-> codename. The app ships as **Crappy Monitor**.
+Then build & run the `CrappyMonitor` scheme in Xcode.
 
 ## Project layout
 
 | Path | What's there |
 |------|--------------|
-| `MurkyMonitor/App` | App entry point, `AppDelegate`, menu bar setup |
-| `MurkyMonitor/Display` | Gamma, display-mode, and pixel-grid controllers |
-| `MurkyMonitor/Filters` | Degradation presets & filter settings |
-| `MurkyMonitor/ControlPanel` | SwiftUI control panel and preset UI |
-| `MurkyMonitor/Resources/Presets.json` | The monitor preset library |
+| `CrappyMonitor/App` | App entry point, `AppDelegate`, menu bar setup |
+| `CrappyMonitor/Display` | Gamma, display-mode, and pixel-grid controllers |
+| `CrappyMonitor/Filters` | Degradation presets & filter settings |
+| `CrappyMonitor/ControlPanel` | SwiftUI control panel and preset UI |
+| `CrappyMonitor/Resources/Presets.json` | The monitor preset library |
 | `docs/` | Source for the landing page (served by GitHub Pages) |
 
 ## License

@@ -3,7 +3,7 @@ import CoreGraphics
 import Foundation
 import os.log
 
-private let log = Logger(subsystem: "com.murkymonitor.app", category: "PresetsStore")
+private let log = Logger(subsystem: "com.crappymonitor.app", category: "PresetsStore")
 
 class PresetsStore: ObservableObject {
     @Published private(set) var presets: [DegradationPreset] = []

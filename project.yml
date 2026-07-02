@@ -1,6 +1,6 @@
-name: MurkyMonitor
+name: CrappyMonitor
 options:
-  bundleIdPrefix: com.murkymonitor
+  bundleIdPrefix: com.crappymonitor
   deploymentTarget:
     macOS: "13.0"
   xcodeVersion: "15.0"
@@ -13,12 +13,12 @@ settings:
     ENABLE_HARDENED_RUNTIME: YES
 
 targets:
-  MurkyMonitor:
+  CrappyMonitor:
     type: application
     platform: macOS
     bundleIdSuffix: app
     info:
-      path: MurkyMonitor/Resources/Info.plist
+      path: CrappyMonitor/Resources/Info.plist
       properties:
         LSUIElement: true
         NSSupportsAutomaticGraphicsSwitching: true
@@ -26,43 +26,43 @@ targets:
         LSMinimumSystemVersion: "13.0"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.murkymonitor.app
-        INFOPLIST_FILE: MurkyMonitor/Resources/Info.plist
-        CODE_SIGN_ENTITLEMENTS: MurkyMonitor/Resources/MurkyMonitor.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.crappymonitor.app
+        INFOPLIST_FILE: CrappyMonitor/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: CrappyMonitor/Resources/CrappyMonitor.entitlements
         SWIFT_OBJC_BRIDGING_HEADER: ""
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
     sources:
-      - path: MurkyMonitor
+      - path: CrappyMonitor
         excludes:
           - "**/*.entitlements"
 
-  MurkyMonitorTests:
+  CrappyMonitorTests:
     type: bundle.unit-test
     platform: macOS
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.murkymonitor.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.crappymonitor.tests
         BUNDLE_LOADER: "$(TEST_HOST)"
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/MurkyMonitor.app/Contents/MacOS/MurkyMonitor"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/CrappyMonitor.app/Contents/MacOS/CrappyMonitor"
         GENERATE_INFOPLIST_FILE: YES
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks"
     sources:
-      - path: MurkyMonitorTests
+      - path: CrappyMonitorTests
     dependencies:
-      - target: MurkyMonitor
+      - target: CrappyMonitor
 
 schemes:
-  MurkyMonitor:
+  CrappyMonitor:
     build:
       targets:
-        MurkyMonitor: all
-        MurkyMonitorTests: [test]
+        CrappyMonitor: all
+        CrappyMonitorTests: [test]
     run:
       config: Debug
     test:
       config: Debug
       targets:
-        - MurkyMonitorTests
+        - CrappyMonitorTests
     profile:
       config: Release
     archive:

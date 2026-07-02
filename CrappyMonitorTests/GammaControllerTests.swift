@@ -1,5 +1,5 @@
 import XCTest
-@testable import MurkyMonitor
+@testable import CrappyMonitor
 
 final class GammaControllerTests: XCTestCase {
 

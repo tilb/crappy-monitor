@@ -100,7 +100,7 @@ struct ControlPanelView: View {
 
             // Header
             HStack {
-                Text("MurkyMonitor")
+                Text("Crappy Monitor")
                     .font(.headline)
                 Spacer()
                 Toggle("Enabled", isOn: $settings.isEnabled)
