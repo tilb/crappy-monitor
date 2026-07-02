@@ -56,7 +56,7 @@ Then build & run the `MurkyMonitor` scheme in Xcode.
 | `MurkyMonitor/Filters` | Degradation presets & filter settings |
 | `MurkyMonitor/ControlPanel` | SwiftUI control panel and preset UI |
 | `MurkyMonitor/Resources/Presets.json` | The monitor preset library |
-| `website/` | Source for the landing page (deployed to GitHub Pages) |
+| `docs/` | Source for the landing page (served by GitHub Pages) |
 
 ## License
 
