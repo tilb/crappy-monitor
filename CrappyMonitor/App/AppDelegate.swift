@@ -6,6 +6,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItem: NSStatusItem?
     private var controlPanelWindow: NSWindow?
+    private var lensWindowController: LensWindowController?   // lens prototype
 
     private let filterSettings = FilterSettings()
     private let presetsStore = PresetsStore()
@@ -75,6 +76,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         setupMenuBar()
         setupABToggle()
+
+        // Lens prototype: `open CrappyMonitor.app --args --lens` opens the lens window directly.
+        if CommandLine.arguments.contains("--lens") || CommandLine.arguments.contains("--lens-snapshots") {
+            DispatchQueue.main.async { self.openLensWindow() }
+        }
 
         // Restore any stale gamma from a prior crash.
         // Done last so it doesn't interfere with startup sequence.
@@ -159,6 +165,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                      action: #selector(openControlPanel),
                      keyEquivalent: ",")
             .target = self
+        menu.addItem(withTitle: "Open Lens Window (Prototype)…",
+                     action: #selector(openLensWindow),
+                     keyEquivalent: "l")
+            .target = self
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Crappy Monitor",
                                 action: #selector(NSApplication.terminate(_:)),
@@ -173,6 +183,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let preset = sender.representedObject as? DegradationPreset else { return }
         preset.apply(to: filterSettings)
         gammaController.apply(settings: filterSettings)
+    }
+
+    // Lens prototype — see design/lens-window/HANDOFF.md. Remove with LensPrototype/.
+    @objc private func openLensWindow() {
+        if lensWindowController == nil {
+            let controller = LensWindowController(presetsStore: presetsStore, filterSettings: filterSettings)
+            controller.onClose = { [weak self] in self?.lensWindowController = nil }
+            lensWindowController = controller
+        }
+        lensWindowController?.show()
+        #if DEBUG
+        if let i = CommandLine.arguments.firstIndex(of: "--lens-snapshots"), i + 1 < CommandLine.arguments.count {
+            lensWindowController?.runSnapshotTour(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
+        }
+        #endif
     }
 
     @objc private func openControlPanel() {

@@ -17,10 +17,20 @@ struct DegradationPreset: Identifiable, Decodable {
     let refreshHz: Int?
     let simulateLowDpi: Bool
 
+    // Lens prototype: brand + model label and datasheet specs. A preset with a
+    // panelType is a real monitor and shows up in the lens window's strip.
+    let shortName: String?
+    let panelType: String?
+    let contrastRatio: Int?
+    let maxBrightness: Int?     // cd/m²
+    let gamutSRGB: Int?         // % sRGB coverage
+    let sizeInches: Double?
+
     private enum CodingKeys: String, CodingKey {
         case id, name, brightness, contrast, colorTempShift
         case gammaExponent, blackLevel, gammaDrift
         case year, resolution, dpi, refreshHz, simulateLowDpi
+        case shortName, panelType, contrastRatio, maxBrightness, gamutSRGB, sizeInches
     }
 
     init(from decoder: Decoder) throws {
@@ -38,7 +48,16 @@ struct DegradationPreset: Identifiable, Decodable {
         dpi            = try c.decodeIfPresent(Int.self, forKey: .dpi)
         refreshHz      = try c.decodeIfPresent(Int.self, forKey: .refreshHz)
         simulateLowDpi = try c.decodeIfPresent(Bool.self, forKey: .simulateLowDpi) ?? false
+        shortName      = try c.decodeIfPresent(String.self, forKey: .shortName)
+        panelType      = try c.decodeIfPresent(String.self, forKey: .panelType)
+        contrastRatio  = try c.decodeIfPresent(Int.self, forKey: .contrastRatio)
+        maxBrightness  = try c.decodeIfPresent(Int.self, forKey: .maxBrightness)
+        gamutSRGB      = try c.decodeIfPresent(Int.self, forKey: .gamutSRGB)
+        sizeInches     = try c.decodeIfPresent(Double.self, forKey: .sizeInches)
     }
+
+    /// Brand + model, without the old descriptive suffix.
+    var displayName: String { shortName ?? name }
 
     func apply(to settings: FilterSettings) {
         // NaN guard: only apply finite values to avoid corrupting gamma tables.
