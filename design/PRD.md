@@ -373,8 +373,11 @@ when the bundled copy is the only copy.)
   **Result (2026-11-02, `LensSandboxSpike`, com.crappymonitor.spike):** sandboxed capture
   works without special entitlements (21 frames in 2 s); all Carbon hot keys register and
   ⌃⌘T fired from another app; the green button fills the screen without entering full
-  screen; click-through worked. Not yet checked: two displays (one connected) and the lens
-  over a full-screen app's Space.
+  screen; click-through worked. Display gamma tables also work inside the sandbox
+  (`CGSetDisplayTransferByTable` returned success, read-back 0.6 as set, restored to 1.0),
+  so the README's claim that the sandbox forbids them is wrong; whether App Review accepts
+  a sandboxed app that changes display gamma is not known. Not yet checked: two displays
+  (one connected) and the lens over a full-screen app's Space.
 - **The source stays on GitHub** (MIT); building from source keeps working.
 - **Debug builds use their own bundle ID** (`com.crappymonitor.app.debug`) so they never
   share or steal the Screen Recording permission of the release app. In the prototype
@@ -1307,7 +1310,7 @@ None.
 
 ## Change after the reviews (2026-11-02)
 
-**Click-through removed from 2.0** (Ernest, after trying it in the M0 sandbox spike: "interesting but awkward and unintuitive"). This supersedes the scope record's click-through part (Vraag 2), R2 (⌃⌘T), R3 (accent border), design 3.2A (hint capsule), the click-through parts of 6.3A, and the ⌘ hand-back test. Tasks affected: T6 (only full-screen Spaces remains), DT1 (only Follow Pointer removal remains), DT6 (no click-through announcements). Whole Screen stays out of 2.0; with click-through gone, hover and focus states cannot be checked through the lens, which the beta should confirm or contradict. Whether the gamma-table API works inside the App Sandbox is still untested (README claims it does not).
+**Click-through removed from 2.0** (Ernest, after trying it in the M0 sandbox spike: "interesting but awkward and unintuitive"). This supersedes the scope record's click-through part (Vraag 2), R2 (⌃⌘T), R3 (accent border), design 3.2A (hint capsule), the click-through parts of 6.3A, and the ⌘ hand-back test. Tasks affected: T6 (only full-screen Spaces remains), DT1 (only Follow Pointer removal remains), DT6 (no click-through announcements). Whole Screen stays out of 2.0; with click-through gone, hover and focus states cannot be checked through the lens, which the beta should confirm or contradict. Gamma tables do work inside the App Sandbox (M0 spike, 2026-11-02), so a later Whole Screen mode would not by itself force a move away from the App Store; App Review acceptance is untested.
 
 
 ## GSTACK REVIEW REPORT
