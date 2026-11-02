@@ -1,5 +1,7 @@
 <!-- /autoplan restore point: /Users/ernestmistiaen/.gstack/projects/crappy-monitor/main-autoplan-restore-20260514-220816.md -->
 
+> **Superseded by `design/PRD.md` (2026-11-02).** Kept for history only: this plan describes v1 (menu bar, gamma tables, no App Store), which 2.0 replaces.
+
 # CrappyMonitor — Real-World Fidelity Improvements
 
 **Goal:** Improve CrappyMonitor to better match how real-world monitors actually look and behave. The app works, but the gamma math is a rough approximation and the presets are healthcare-specific inventions. We want presets grounded in real ICC data and physics-accurate color science.
