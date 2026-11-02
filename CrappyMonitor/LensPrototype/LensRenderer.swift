@@ -206,7 +206,27 @@ final class LensRenderer: NSObject, MTKViewDelegate {
         if (sp.x < 0.0 || sp.y < 0.0 || sp.x >= u.texSize.x || sp.y >= u.texSize.y) {
             return float4(0.0, 0.0, 0.0, 1.0);   // lens hangs off the display
         }
-        float4 c = src.read(uint2(sp));
+        float4 c;
+        if (u.block > 1.0) {
+            // Non-retina: one screen pixel per block = the AVERAGE of the block
+            // (a real downsample), averaged in approximately linear light.
+            // Picking a single pixel instead drops thin font strokes.
+            int b = int(u.block);
+            float3 acc = float3(0.0);
+            int n = 0;
+            for (int y = 0; y < b; y++) {
+                for (int x = 0; x < b; x++) {
+                    float2 p = sp + float2(x, y);
+                    if (p.x < u.texSize.x && p.y < u.texSize.y) {
+                        acc += pow(src.read(uint2(p)).rgb, float3(2.2));
+                        n++;
+                    }
+                }
+            }
+            c = float4(pow(acc / float(max(n, 1)), float3(1.0 / 2.2)), 1.0);
+        } else {
+            c = src.read(uint2(sp));
+        }
         if (u.original > 0.5) { return float4(c.rgb, 1.0); }
         uint3 i = uint3(round(saturate(c.rgb) * 255.0));
         return float4(table.read(uint2(i.r, 0)).r,

@@ -57,23 +57,50 @@ final class Thumbnailer {
 
         var out: [String: NSImage] = [:]
         let block = max(1, Int(ppp.rounded()))
+        // Non-retina source: every block holds the average of its pixels, like the lens.
+        let averaged = (block > 1 && jobs.contains { $0.params.nonRetina })
+            ? Self.blockAverage(crop, w, h, block: block, originX: x0, originY: y0) : crop
         for job in jobs {
             let luts = lut(for: job.params)
             let r = luts[0], g = luts[1], b = luts[2]
+            let src = job.params.nonRetina ? averaged : crop
             var px = [UInt8](repeating: 255, count: w * h * 4)
-            let snap = job.params.nonRetina ? block : 1
-            for y in 0..<h {
-                // Keep the block grid aligned to the display, like the lens does.
-                let sy = snap > 1 ? max(0, ((y0 + y) / snap) * snap - y0) : y
-                for x in 0..<w {
-                    let sx = snap > 1 ? max(0, ((x0 + x) / snap) * snap - x0) : x
-                    let s = (sy * w + sx) * 4, d = (y * w + x) * 4
-                    px[d] = b[Int(crop[s])]
-                    px[d + 1] = g[Int(crop[s + 1])]
-                    px[d + 2] = r[Int(crop[s + 2])]
-                }
+            for i in stride(from: 0, to: w * h * 4, by: 4) {
+                px[i] = b[Int(src[i])]
+                px[i + 1] = g[Int(src[i + 1])]
+                px[i + 2] = r[Int(src[i + 2])]
             }
             if let img = Self.makeImage(px, w, h) { out[job.id] = img }
+        }
+        return out
+    }
+
+    /// Averages each block × block cell (in approximately linear light) and fills
+    /// the cell with that colour. The grid is aligned to the display, not the crop.
+    private static func blockAverage(_ px: [UInt8], _ w: Int, _ h: Int, block: Int,
+                                     originX: Int, originY: Int) -> [UInt8] {
+        let toLinear = (0..<256).map { pow(Float($0) / 255, 2.2) }
+        var out = px
+        var by = -(originY % block)
+        while by < h {
+            var bx = -(originX % block)
+            while bx < w {
+                let ys = max(0, by)..<min(h, by + block), xs = max(0, bx)..<min(w, bx + block)
+                var acc: (Float, Float, Float) = (0, 0, 0)
+                for y in ys { for x in xs {
+                    let i = (y * w + x) * 4
+                    acc.0 += toLinear[Int(px[i])]; acc.1 += toLinear[Int(px[i + 1])]; acc.2 += toLinear[Int(px[i + 2])]
+                } }
+                let n = Float(ys.count * xs.count)
+                let enc = { (v: Float) in UInt8((pow(v / n, 1 / 2.2) * 255).rounded().clamped(to: 0...255)) }
+                let c = (enc(acc.0), enc(acc.1), enc(acc.2))
+                for y in ys { for x in xs {
+                    let i = (y * w + x) * 4
+                    out[i] = c.0; out[i + 1] = c.1; out[i + 2] = c.2
+                } }
+                bx += block
+            }
+            by += block
         }
         return out
     }

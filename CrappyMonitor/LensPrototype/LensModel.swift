@@ -13,7 +13,6 @@ final class LensModel: ObservableObject {
     let filterSettings: FilterSettings
     private let defaults: UserDefaults
     private var cancellables = Set<AnyCancellable>()
-    private var hoverWork: DispatchWorkItem?
 
     static let repoURL = "https://github.com/tilb/crappy-monitor"
 
@@ -108,7 +107,6 @@ final class LensModel: ObservableObject {
     var showsOriginal: Bool { optionHeld }
 
     func use(_ id: String) {
-        cancelHover()
         previewID = nil
         activeID = id
     }
@@ -129,31 +127,24 @@ final class LensModel: ObservableObject {
         use(favourites[index])
     }
 
-    // MARK: Hover preview (D2)
+    // MARK: Hover (D2)
+    // Hover-to-preview was dropped after the first demo (2026-11-02, Ernest:
+    // "not intuitive"). Hover now only shows the tile background and the ⓘ
+    // button; the lens changes on click. `previewID` stays for the snapshot tour.
 
     func hoverBegan(_ id: String, key: String) {
         hoveredKey = key
-        cancelHover()
-        let work = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            self.previewID = (id == self.activeID) ? nil : id
-        }
-        hoverWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
     }
 
     func hoverEnded(key: String) {
         if hoveredKey == key { hoveredKey = nil }
-        cancelHover()   // keep the current preview until the pointer leaves the strip
     }
 
     func leftStrip() {
-        cancelHover()
         hoveredKey = nil
         previewID = nil
     }
 
-    private func cancelHover() { hoverWork?.cancel(); hoverWork = nil }
 
     // MARK: Info (D4)
 
