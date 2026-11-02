@@ -34,6 +34,11 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private var chromeUpdatePending = false
     private var lastPointerInLens: CGPoint?
 
+    // Sandbox spike (task T1); see LensSpike.swift.
+    var spikeClickThrough = false
+    var spikeMonitors: [Any] = []
+    var spikeCapture: ScreenCapture { capture }
+
     private let modeControl = NSSegmentedControl()
     private var followButton = NSButton()
     private var stripButton = NSButton()
@@ -55,6 +60,9 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         window.contentMinSize = NSSize(width: 400, height: 170)
         // A lens floats over the app you are looking at, like Sim Daltonism.
         window.level = .floating
+        // Over full-screen apps and along to the active Space (PRD R6); never its own
+        // full-screen Space, so the green button zooms (PRD 6.1A). Verified by the spike.
+        window.collectionBehavior = [.fullScreenAuxiliary, .moveToActiveSpace]
         window.setFrameAutosaveName("LensPrototypeWindow")
         super.init(window: window)
 
@@ -95,6 +103,9 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         NSApp.activate(ignoringOtherApps: true)
         startCaptureIfAllowed()
         restartThumbTimer()
+        #if SANDBOX_SPIKE
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.runSandboxChecks(nil) }
+        #endif
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -472,6 +483,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case #selector(showInfo(_:)), #selector(focusSearch(_:)):
             return model.mode == .lens
         case #selector(toggleStillThumbnails(_:)): item.state = model.stillThumbnails ? .on : .off
+        case #selector(toggleSpikeClickThrough(_:)): item.state = spikeClickThrough ? .on : .off
         case #selector(useFavourite(_:)): item.state = model.favourites[safe: item.tag] == model.activeID ? .on : .off
         default: break
         }
@@ -488,6 +500,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
             self.model.mode = self.model.mode == .wholeScreen ? .lens : .wholeScreen
         }
         hotKeys.register(kVK_ANSI_P) { [weak self] in self?.toggleFollow(nil) }
+        hotKeys.register(kVK_ANSI_T) { [weak self] in self?.toggleSpikeClickThrough(nil) }
     }
 
     private func installMainMenu() {
@@ -541,6 +554,9 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         ])
         add("Debug", [
             item("Still Thumbnails (Every 3 s)", #selector(toggleStillThumbnails(_:)), target: self),
+            .separator(),
+            item("Click Through (Spike)", #selector(toggleSpikeClickThrough(_:)), "t", [.control, .command], target: self),
+            item("Run Sandbox Checks", #selector(runSandboxChecks(_:)), target: self),
         ])
         NSApp.mainMenu = main
     }

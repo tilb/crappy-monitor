@@ -1,5 +1,8 @@
 import Carbon.HIToolbox
 import Foundation
+import os.log
+
+private let hotKeyLog = Logger(subsystem: "com.crappymonitor.app", category: "Spike")
 
 // LENS PROTOTYPE — throwaway.
 
@@ -17,10 +20,10 @@ final class HotKeys {
         actions[id] = action
         var ref: EventHotKeyRef?
         let hotKeyID = EventHotKeyID(signature: OSType(0x434D_4C4E), id: id)   // 'CMLN'
-        if RegisterEventHotKey(UInt32(keyCode), UInt32(modifiers), hotKeyID,
-                               GetApplicationEventTarget(), 0, &ref) == noErr, let ref {
-            refs.append(ref)
-        }
+        let status = RegisterEventHotKey(UInt32(keyCode), UInt32(modifiers), hotKeyID,
+                                         GetApplicationEventTarget(), 0, &ref)
+        hotKeyLog.notice("SPIKE hotkey keyCode=\(keyCode, privacy: .public) register status=\(status, privacy: .public)")
+        if status == noErr, let ref { refs.append(ref) }
     }
 
     func unregisterAll() {
@@ -42,6 +45,7 @@ final class HotKeys {
             GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID),
                               nil, MemoryLayout<EventHotKeyID>.size, nil, &hotKeyID)
             let hotKeys = Unmanaged<HotKeys>.fromOpaque(userData).takeUnretainedValue()
+            hotKeyLog.notice("SPIKE hotkey fired id=\(hotKeyID.id, privacy: .public)")
             DispatchQueue.main.async { hotKeys.actions[hotKeyID.id]?() }
             return noErr
         }, 1, &spec, me, &handler)

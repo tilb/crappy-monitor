@@ -78,7 +78,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupABToggle()
 
         // Lens prototype: `open CrappyMonitor.app --args --lens` opens the lens window directly.
-        if CommandLine.arguments.contains("--lens") || CommandLine.arguments.contains("--lens-snapshots") {
+        #if SANDBOX_SPIKE
+        let openLensAtLaunch = true   // the sandbox spike is all about the lens
+        #else
+        let openLensAtLaunch = false
+        #endif
+        if openLensAtLaunch || CommandLine.arguments.contains("--lens") || CommandLine.arguments.contains("--lens-snapshots") {
             DispatchQueue.main.async { self.openLensWindow() }
         }
 

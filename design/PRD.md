@@ -15,8 +15,9 @@ actually have. Version 1 is a menu bar app that degrades the whole screen with g
 tables. Version 2 replaces it with a regular Mac app built around a **lens**: a window you
 put over any part of the screen that shows what is underneath through a chosen monitor,
 at a chosen age. To see more, you make the lens bigger. Whole-screen degradation is
-dropped (decided in review, 2026-11-02): stretching the lens is good enough, and a
-**click-through** mode lets you keep working in your app while you look through the lens.
+dropped (decided in review, 2026-11-02): stretching the lens is good enough. The lens is
+for looking; to work in your app you move or collapse the lens (click-through was tried
+and dropped, 2026-11-02).
 
 The prototype proved the hard parts work: live capture with ScreenCaptureKit, the filter
 in a Metal shader, the monitor strip, search, info and the collapsed lens. Ernest is
@@ -52,7 +53,6 @@ ships to people on ordinary office monitors (enterprise, healthcare, education).
 |-----|-------------------|
 | "Will this grey label still be readable on my users' screens?" | Put the lens over it, pick the monitor, set the age. |
 | "Which of our customers' monitors breaks this?" | Compare several monitors through the strip thumbnails. |
-| "Let me keep working while I check" | Click-through mode: work in your app through the lens. |
 | "Show the team" | Share the lens window, or the screen with the lens on it. |
 | "Is it the monitor or my design?" | Hold ⌥ to see the original. |
 
@@ -61,14 +61,14 @@ ships to people on ordinary office monitors (enterprise, healthcare, education).
 | Decision | Source |
 |----------|--------|
 | The app is a lens window only. Whole Screen and the v1 menu bar item are removed. | Review, 2026-11-02 (Vraag 2) |
-| Click-through mode: the lens lets clicks, scrolls and hover through to the app below, so hover and focus states can be checked through the lens; hold ⌘ to use the lens window itself. | Review, 2026-11-02 (Vraag 2) |
+| No click-through in 2.0. It worked technically (M0 spike) but Ernest found it awkward and unintuitive; hover and focus states cannot be checked through the lens. Deferred, not forgotten: revisit after the beta, possibly as a lens that stays put and shows the area around the cursor. | Ernest, 2026-11-02 (after the reviews) |
 | Regular app with Dock icon and main menu. | Handoff §2, §5 |
 | Monitors are named by brand and model. Profiles are based on specifications, and the UI says so. No trust badges. | Handoff §2 |
 | Age is a global control (New / 3 / 6 / 10 years), default 6, applied on top of any monitor. The wear model is redefined in §7.3. | Handoff §2; this PRD |
 | Gamut (colour range) is simulated in 2.0. Reconsider only if research cannot find the values (§8.1). | Review, 2026-11-02 (Vraag 3) |
 | One `MonitorFilter` computes the parameters; one Metal renderer draws the lens and the thumbnails. A CPU version of the filter exists only in tests, as a reference. | Review, 2026-11-02 (Vraag 4) |
 | No hover preview. Hover shows a subtle tile background and the ⓘ button; the lens changes on click. | Prototype demo, 2026-11-02 |
-| Follow Pointer is removed: an unproven idea (H3) with the most edge cases; click-through covers checking hover and focus states. | Design review, 2026-11-02 (1C) |
+| Follow Pointer is removed: an unproven idea (H3) with the most edge cases. | Design review, 2026-11-02 (1C) |
 | Strip thumbnails are live at 2 fps; "still every 3 s" is a hidden setting for comparison. | Prototype decision, 2026-11-01 |
 | "More…" opens the search results list with all monitors. | Prototype decision, 2026-11-01 |
 | Non-retina simulation averages pixel blocks (a real downsample), never picks one pixel per block. | Prototype fix `90c44b9` |
@@ -84,15 +84,11 @@ repeated here. Changes against that brief:
 
 - **Whole Screen is gone.** The Lens | Whole Screen control, `state-whole-screen.png` and
   ⌃⌘W are removed from the design.
-- **Toolbar (D1):** Click-through toggle · title · strip toggle · search field. Click-through
-  uses `cursorarrow.rays` (§5.3) and the tooltip "Click Through (⌃⌘T) — hold ⌘ to use this
-  window".
+- **Toolbar (D1):** title · strip toggle · search field.
 - **D2 (hover preview) is removed.** Hover shows the tile background and the ⓘ button.
   The preview capsule is gone. Keyboard focus on a tile does not preview either.
-- **D5 toolbar** shows only Click-through and the strip toggle; no title
-  and no search field (they push the buttons into the overflow menu at 440 pt).
-- **Click-through state is always visible:** while it is on, the toolbar toggle is on and
-  the window shows a thin accent border, so a user never wonders why clicks "don't work".
+- **D5 toolbar** shows only the strip toggle; no title and no search field (they push the
+  buttons into the overflow menu at 440 pt).
 - **The monitor's specs in D4** show their source as a footnote link ("Source: Dell
   datasheet"), so a wrong value can be traced. Estimated values are marked as such.
 - **"Report it" and "Request it on GitHub…"** open prefilled GitHub issue forms (issue
@@ -103,8 +99,8 @@ repeated here. Changes against that brief:
 
 Keyboard shortcuts, VoiceOver labels and the interaction table stay as in Handoff §4,
 except: "Hover tile ≥ 300 ms", ⌘0 (design review, 7.1B) and ⌃⌘W are removed, ⌃⌘L becomes "show the lens window",
-and ⌃⌘T toggles click-through. ⌃⌘P (Follow Pointer) is removed. ⌃⌘L and ⌃⌘T work
-system-wide (Carbon hot keys,
+and ⌃⌘P (Follow Pointer) and ⌃⌘T (click-through) are removed. ⌃⌘L works
+system-wide (a Carbon hot key,
 which need no Accessibility permission; they do not fire when the front app consumes the
 key itself, e.g. a terminal).
 
@@ -130,8 +126,6 @@ Search (D3)     | —                             | "No monitors match "…"" + 
 Info (D4)       | —                             | missing value: "—", VoiceOver  | —                              | sourced value         | estimated value: "≈ 95% sRGB"
                 |                               | "Unknown" (2.3)                |                                |                       | + footnote "≈ estimated from
                 |                               |                                |                                |                       | the datasheet" (2.3)
-Click-through   | —                             | —                              | —                              | toggle on + accent    | —
-                |                               |                                |                                | border (Vraag 7)      |
 Compare (⌥)     | —                             | —                              | —                              | "Showing original"    | —
                 |                               |                                |                                | capsule (Handoff)     |
 ```
@@ -148,10 +142,6 @@ Relaunch Crappy Monitor to start the lens." with a **Relaunch** button that quit
 reopens this same app (review 2, Vraag 17). If the user declines, the permission screen
 stays with "Open System Settings…".
 
-**Discovering click-through (3.2A).** Each time click-through is switched on, a capsule
-appears at the top of the lens for 3 seconds: "Clicks go to the app below · hold ⌘ to use
-the lens" (same style as the ⌥ "Showing original" capsule; with Reduce Motion it appears
-and disappears without a fade).
 
 | Step | User does | User feels | Plan specifies |
 |------|-----------|-----------|----------------|
@@ -161,7 +151,7 @@ and disappears without a fade).
 | 4 | Sees their screen through the most common monitor | "aha" (5-second visceral) | rank-1 monitor active (3.1A) |
 | 5 | Drags the lens over their design, tries other tiles | engaged | D1, strip |
 | 6 | Sets Age to 10 years | insight | Age control, §7.3 |
-| 7 | Wants to check a hover state, turns on click-through | in control | capsule explains ⌘ (3.2A), accent border |
+| 7 | Wants to check a hover state | limited: not possible through the lens in 2.0 | click-through dropped; revisit after the beta |
 | 8 | Holds ⌥ to compare | convinced (5-minute behavioural) | ⌥ compare |
 | 9 | A month later macOS asks to re-confirm Screen Recording | mild annoyance | permission state handles it (§9) |
 | 10 | Keeps using it before every release (5-year reflective) | trusts the tool | sourced specs, "Looks wrong? Report it" |
@@ -173,11 +163,10 @@ website.
 
 | Token | Value |
 |-------|-------|
-| Colour | System colours only: `controlAccentColor` (active ring, "Active", click-through border), `labelColor` / `secondaryLabelColor`, `separatorColor`, `windowBackgroundColor`. No custom colours; light and dark follow the system. |
+| Colour | System colours only: `controlAccentColor` (active ring, "Active"), `labelColor` / `secondaryLabelColor`, `separatorColor`, `windowBackgroundColor`. No custom colours; light and dark follow the system. |
 | Type | SF Pro through the standard text styles. Tile name 12 pt semibold (Handoff), strip headers caption semibold uppercase in `secondaryLabelColor`, window title from the system. |
-| Materials | Capsules (⌥ original, click-through hint, loading) use `.regularMaterial`; popovers and sheets are system popovers. Reduce Transparency is handled by the system. |
-| Symbols | Click-through `cursorarrow.rays` · strip toggle `rectangle.bottomthird.inset.filled` · Adjust `slider.horizontal.3` · tile info `info.circle.fill` · active badge `checkmark.circle.fill` · More… `plus` · permission `rectangle.dashed.badge.record` · compare capsule `option`. Search uses the system search toolbar item. Each symbol is checked against SF Symbols for macOS 13 at build time. |
-| Click-through border | 2 pt `controlAccentColor` just inside the window edge, around content and toolbar; 3 pt with Increase Contrast. |
+| Materials | Capsules (⌥ original, loading) use `.regularMaterial`; popovers and sheets are system popovers. Reduce Transparency is handled by the system. |
+| Symbols | Strip toggle `rectangle.bottomthird.inset.filled` · Adjust `slider.horizontal.3` · tile info `info.circle.fill` · active badge `checkmark.circle.fill` · More… `plus` · permission `rectangle.dashed.badge.record` · compare capsule `option`. Search uses the system search toolbar item. Each symbol is checked against SF Symbols for macOS 13 at build time. |
 | Sizes (Handoff) | Window ≈ 1040 × 730 pt; strip 170 pt; tile 132 pt wide, thumbnail 124 × 70 pt, active ring 2.5 pt; D5 window ≈ 440 × 330 pt. |
 | Shapes | System window corners; tile thumbnails 6 pt continuous corners (prototype). |
 
@@ -198,15 +187,10 @@ window-layout state machine with table tests.
 
 **Accessibility (6.3A),** in addition to Handoff §4 (keyboard shortcuts, tile focus with
 Tab and arrow keys, tile VoiceOver labels):
-- Click-through toggles are announced: "Click-through on. Clicks go to the app below." /
-  "Click-through off."
-- Lens capsules (⌥ original, click-through hint, loading) are announced when they appear.
+- Lens capsules (⌥ original, loading) are announced when they appear.
 - The lens view's label: "Lens through [monitor], [age]" (no app name; review 2, Vraag 19).
 - Focus order: toolbar → lens → strip (Last used, favourites, More…) → Age → Adjust.
-- ⌃⌘T is the alternative for anyone who cannot hold ⌘; holding ⌘ also works with Sticky
-  Keys.
-- Increase Contrast thickens the click-through border to 3 pt (§5.3); Reduce Motion
-  removes capsule fades (§5.2); states never rely on colour alone (Handoff §2).
+- Reduce Motion removes capsule fades; states never rely on colour alone (Handoff §2).
 
 ## 6. Rendering pipeline
 
@@ -240,7 +224,6 @@ Tab and arrow keys, tile VoiceOver labels):
   and stop as the lens enters or leaves a display, and the shader samples the capture of
   the display under each pixel (review, Vraag 9). Each stream holds 3 frames, the
   minimum (review, Vraag 14).
-- **Click-through** sets `ignoresMouseEvents` and watches ⌘ to hand the window back.
 - **Hold ⌥** shows the unfiltered capture in the lens and the thumbnails.
 - **No display state is changed.** 2.0 never touches gamma tables or display modes, so
   quitting or crashing cannot leave the user's screen degraded.
@@ -255,7 +238,7 @@ Tab and arrow keys, tile VoiceOver labels):
 | `App/AppDelegate.swift` status item, gamma sink, ⌥ handler | **Rewrite**: no status item, no gamma; the ⌥ compare drives the lens only. |
 | `Filters/DegradationPreset.swift`, `Resources/Presets.json` | **Rewrite** to the §7.1 profile schema with a version number. |
 | `LensPrototype/ScreenCapture.swift` | **Promote**, extended to one stream per display under the lens. |
-| `LensPrototype/HotKeys.swift` | **Promote** (⌃⌘L, ⌃⌘T). The Follow Pointer code in the window controller is **deleted**. |
+| `LensPrototype/HotKeys.swift` | **Promote** (⌃⌘L only). The Follow Pointer and click-through spike code in the window controller is **deleted**. |
 | `LensPrototype/LensRenderer.swift` (shader approach) | **Promote the approach**, rewrite for MonitorFilter parameters, two displays and offscreen thumbnails. |
 | `LensPrototype/LensModel.swift`, `LensWindowController.swift`, views | **Rewrite** with tests; the prototype is the reference for behaviour. |
 | `LensPrototype/Thumbnailer.swift` | **Delete** (thumbnails move to the renderer, Vraag 4). |
@@ -387,6 +370,11 @@ when the bundled copy is the only copy.)
   the full-screen-auxiliary behaviour (it must zoom, never enter full screen; review 2),
   click-through and the Carbon hot keys in a sandboxed build. If any of it
   fails, 2.0 ships as a Developer ID DMG with Sparkle 2.7.2 or later instead.
+  **Result (2026-11-02, `LensSandboxSpike`, com.crappymonitor.spike):** sandboxed capture
+  works without special entitlements (21 frames in 2 s); all Carbon hot keys register and
+  ⌃⌘T fired from another app; the green button fills the screen without entering full
+  screen; click-through worked. Not yet checked: two displays (one connected) and the lens
+  over a full-screen app's Space.
 - **The source stays on GitHub** (MIT); building from source keeps working.
 - **Debug builds use their own bundle ID** (`com.crappymonitor.app.debug`) so they never
   share or steal the Screen Recording permission of the release app. In the prototype
@@ -407,7 +395,7 @@ when the bundled copy is the only copy.)
 - Regression contract (review, Vraag 12): the 6 Kang white-point tests and the 3 tone-table
   invariants (in [0,1], monotonic, finite) move unchanged from `GammaControllerTests` and
   test MonitorFilter.
-- Pure-function tests for the ⌘ hand-back decision, the displays a lens rect overlaps,
+- Pure-function tests for the displays a lens rect overlaps,
   capture state transitions (including "granted, needs relaunch"), and the window-layout
   state machine (zoom, auto-collapse, manual collapse, un-zoom restore; review 2).
 - Shader tests: render known frames offscreen and compare with the CPU reference, for the
@@ -415,7 +403,7 @@ when the bundled copy is the only copy.)
 - Manual test script for the beta: permission flow (grant, deny, revoke while running,
   "Quit & Reopen", monthly re-confirm), two displays, display unplugged while capturing,
   sleep/wake, lens over a full-screen app and after switching Spaces, a lens spanning two
-  displays, click-through (including ⌘ hand-back and hover states seen through the lens), ⌥ compare,
+  displays, ⌥ compare,
   increased contrast, VoiceOver, keyboard only.
 - Performance: lens at up to 30 fps on a 5K display without dropping frames on an M1;
   it redraws only when the screen under it, a setting or ⌥ changes, or the window moves,
@@ -429,7 +417,7 @@ when the bundled copy is the only copy.)
 | M0 | Foundations | Sandbox spike passes; App Store Connect record, release and debug bundle IDs, CI build + upload to TestFlight. |
 | M1 | Monitor research | Ten sourced profiles including primaries, reviewed by Ernest. Can run in parallel with M2. |
 | M2 | Production pipeline | MonitorFilter, capture, LensRenderer (lens + thumbnails), tests (§10). |
-| M3 | Production UI | D1, D3, D4, D5, click-through, permission state, keyboard, VoiceOver. |
+| M3 | Production UI | D1, D3, D4, D5, permission state, keyboard, VoiceOver. |
 | M4 | Beta | TestFlight beta to 10–20 designers; H1, H4, H5 from the handoff answered from feedback (H3 settled: Follow Pointer removed). |
 | M5 | Launch 2.0 | Fixes from beta, App Store review passed, README and website updated, issue templates live. |
 
@@ -1316,6 +1304,11 @@ None.
 - Outside voice: codex, unavailable (CLI broken; native fallback unavailable)
 - Parallelization: Sequential implementation, no parallelization opportunity (the delta sits in the window and onboarding modules of review 1's lanes A and S6)
 - Lake Score: N/A (no Completeness scores used)
+
+## Change after the reviews (2026-11-02)
+
+**Click-through removed from 2.0** (Ernest, after trying it in the M0 sandbox spike: "interesting but awkward and unintuitive"). This supersedes the scope record's click-through part (Vraag 2), R2 (⌃⌘T), R3 (accent border), design 3.2A (hint capsule), the click-through parts of 6.3A, and the ⌘ hand-back test. Tasks affected: T6 (only full-screen Spaces remains), DT1 (only Follow Pointer removal remains), DT6 (no click-through announcements). Whole Screen stays out of 2.0; with click-through gone, hover and focus states cannot be checked through the lens, which the beta should confirm or contradict. Whether the gamma-table API works inside the App Sandbox is still untested (README claims it does not).
+
 
 ## GSTACK REVIEW REPORT
 

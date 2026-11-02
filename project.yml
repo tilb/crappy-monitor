@@ -24,17 +24,52 @@ targets:
         NSSupportsAutomaticGraphicsSwitching: true
         NSPrincipalClass: NSApplication
         LSMinimumSystemVersion: "13.0"
+        CFBundleDisplayName: $(APP_DISPLAY_NAME)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.crappymonitor.app
+        APP_DISPLAY_NAME: Crappy Monitor
         INFOPLIST_FILE: CrappyMonitor/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: CrappyMonitor/Resources/CrappyMonitor.entitlements
         SWIFT_OBJC_BRIDGING_HEADER: ""
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+      configs:
+        # Own bundle ID for debug builds, so they never share or steal the
+        # Screen Recording permission of release builds (PRD §9, task T2).
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: com.crappymonitor.app.debug
+          APP_DISPLAY_NAME: Crappy Monitor Debug
+    sources:
+      - path: CrappyMonitor
+        excludes:
+          - "**/*.entitlements"
+
+  # M0 sandbox spike (PRD §9, task T1): the prototype inside the App Sandbox.
+  LensSandboxSpike:
+    type: application
+    platform: macOS
+    info:
+      path: Spike/Info.plist
+      properties:
+        LSUIElement: true
+        NSPrincipalClass: NSApplication
+        LSMinimumSystemVersion: "13.0"
+        CFBundleDisplayName: Crappy Monitor Sandbox Spike
+    entitlements:
+      path: Spike/LensSandboxSpike.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.crappymonitor.spike
+        PRODUCT_NAME: LensSandboxSpike
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) SANDBOX_SPIKE"
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
     sources:
       - path: CrappyMonitor
         excludes:
           - "**/*.entitlements"
+          - "Resources/Info.plist"
 
   CrappyMonitorTests:
     type: bundle.unit-test
