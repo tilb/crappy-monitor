@@ -28,7 +28,7 @@ extension LensWindowController {
             guard i < steps.count else { NSApp.terminate(nil); return }
             steps[i].1()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                if let view = self.lensViewForSnapshot, let img = view.renderer?.snapshot(of: view) {
+                if let view = self.lensViewForSnapshot, let img = view.driver?.snapshot(of: view) {
                     let rep = NSBitmapImageRep(cgImage: img)
                     try? rep.representation(using: .png, properties: [:])?
                         .write(to: dir.appendingPathComponent("\(steps[i].0)-lens.png"))

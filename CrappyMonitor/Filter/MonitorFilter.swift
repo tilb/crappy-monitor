@@ -12,14 +12,15 @@ enum MonitorAge: Int, CaseIterable, Identifiable, Codable, Hashable {
 }
 
 /// The one place that turns a monitor profile, an age and Adjust edits into filter
-/// parameters (PRD §6, §7.2–7.3). `apply(_:)` is the CPU reference of the pixel maths;
-/// the Metal shader mirrors it and tests compare the two (PRD §10).
+/// parameters (PRD §6, §7.2–7.3). `apply(_:at:)` is the CPU reference of the pixel maths;
+/// the Metal shader in `LensRenderer` mirrors it and tests compare the two (PRD §10).
 ///
 /// Signal path for one sRGB-encoded pixel:
 ///   1. panel tone curve per channel (gamma, TN midtone drift, VA shadow crush) → linear
 ///   2. the panel's own primaries → sRGB linear (gamut matrix)
 ///   3. white point (warm drift with age) via the Kang multipliers
-///   4. panel black floor (1 / contrast), backlight wear and reflected office light,
+///   4. panel black floor (1 / contrast), backlight wear (dimmer towards the corners)
+///      and reflected office light,
 ///      normalised so a new monitor's white stays at 1
 ///   5. clamp and encode back to sRGB for the Mac display
 struct MonitorFilter: Hashable {
@@ -115,6 +116,13 @@ struct MonitorFilter: Hashable {
     /// Brightness loss towards the corners of the display under the lens: u(t) = 0.01 · t.
     var cornerFalloff: Double { Constants.cornerFalloffPerYear * age.years }
 
+    /// Backlight output at a point on the display (0…1 across, top-left origin), relative
+    /// to the centre: radial, so the corners lose the full `cornerFalloff` (PRD §7.3, 5).
+    func uniformity(at p: SIMD2<Double>) -> Double {
+        let q = p * 2 - 1
+        return 1 - cornerFalloff * simd_length_squared(q) / 2
+    }
+
     /// Every library monitor is ≈ 90–100 ppi, so non-retina is on unless Adjust turns it off.
     var nonRetina: Bool { edits.nonRetina ?? true }
 
@@ -142,13 +150,14 @@ struct MonitorFilter: Hashable {
         return pow(v, g)
     }
 
-    /// One sRGB-encoded pixel (0…1 per channel) as this monitor shows it, sRGB-encoded.
-    /// `gamut: false` skips the matrix (the prototype's per-channel renderer, until T4).
-    func apply(_ rgb: SIMD3<Double>, gamut: Bool = true) -> SIMD3<Double> {
+    /// One sRGB-encoded pixel (0…1 per channel) as this monitor shows it at display
+    /// position `p` (0…1, centre by default), sRGB-encoded. `gamut: false` skips the
+    /// matrix, so tests can look at the tone curve alone.
+    func apply(_ rgb: SIMD3<Double>, at p: SIMD2<Double> = SIMD2(0.5, 0.5), gamut: Bool = true) -> SIMD3<Double> {
         var lin = SIMD3(panelLinear(rgb.x), panelLinear(rgb.y), panelLinear(rgb.z))
         if gamut { lin = gamutMatrix * lin }
         lin *= whiteMultipliers
-        let b = blackFloor, w = wear, a = officeLight
+        let b = blackFloor, w = wear * uniformity(at: p), a = officeLight
         var out = (w * (b + (1 - b) * lin) + a) / (1 + a)
         out = simd_clamp(out, SIMD3(repeating: 0), SIMD3(repeating: 1))
         return SIMD3(Self.encode(out.x), Self.encode(out.y), Self.encode(out.z))
@@ -163,19 +172,6 @@ struct MonitorFilter: Hashable {
             let v = Double(i) / 255
             let o = apply(SIMD3(v, v, v))
             r.append(o.x); g.append(o.y); b.append(o.z)
-        }
-        return (r, g, b)
-    }
-
-    /// Per-channel 3 × 256 tables without the gamut matrix: what the prototype's
-    /// per-channel shader and thumbnails can apply until the T4 renderer lands.
-    func channelTables() -> (r: [Float], g: [Float], b: [Float]) {
-        var r = [Float](), g = [Float](), b = [Float]()
-        for i in 0..<256 {
-            let v = Double(i) / 255
-            r.append(Float(apply(SIMD3(v, 0, 0), gamut: false).x))
-            g.append(Float(apply(SIMD3(0, v, 0), gamut: false).y))
-            b.append(Float(apply(SIMD3(0, 0, v), gamut: false).z))
         }
         return (r, g, b)
     }

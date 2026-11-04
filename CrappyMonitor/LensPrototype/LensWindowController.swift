@@ -16,7 +16,8 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
 
     private let capture = ScreenCapture()
     private let geometry = LensGeometry()
-    private let thumbnailer = Thumbnailer()
+    private let renderer = LensRenderer()
+    private var thumbnailsBusy = false
     private let hotKeys = HotKeys()
     private var cancellables = Set<AnyCancellable>()
     private var thumbTimer: Timer?
@@ -53,6 +54,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         super.init(window: window)
 
         window.delegate = self
+        geometry.renderer = renderer
         let host = NSHostingView(rootView: LensRootView(model: model, capture: capture, geometry: geometry))
         host.sizingOptions = []   // the controller owns the window size
         window.contentView = host
@@ -284,8 +286,31 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         var ids = [model.activeID]
         for id in model.favourites where !ids.contains(id) { ids.append(id) }
         let jobs = ids.compactMap { id in model.filter(for: id).map { (id: id, filter: $0) } }
-        thumbnailer.render(frame: frame, center: center, jobs: jobs) { [weak self] images in
-            self?.model.thumbnails.merge(images) { $1 }
+        guard !thumbnailsBusy, let renderer, let source = renderer.source(for: frame.buffer) else { return }
+
+        // A 1:1 crop of the display around the pointer (or the lens centre), drawn by the
+        // same shader as the lens, one offscreen pass per tile (PRD §6).
+        let ppp = frame.pixelsPerPoint
+        let w = Int(LensModel.thumbnailSize.width * ppp), h = Int(LensModel.thumbnailSize.height * ppp)
+        let bufW = Double(CVPixelBufferGetWidth(frame.buffer)), bufH = Double(CVPixelBufferGetHeight(frame.buffer))
+        let cx = (center.x - frame.displayFrame.minX) * ppp, cy = (frame.displayFrame.maxY - center.y) * ppp
+        let origin = SIMD2(Float(min(max(cx - Double(w) / 2, 0), max(bufW - Double(w), 0)).rounded()),
+                           Float(min(max(cy - Double(h) / 2, 0), max(bufH - Double(h), 0)).rounded()))
+        let original = model.showsOriginal
+        let block = Int(max(1, ppp.rounded()))
+        let renderJobs = jobs.map {
+            LensRenderer.Job(region: RenderRegion(origin: origin), width: w, height: h, filter: $0.filter,
+                             original: original, block: $0.filter.nonRetina && !original ? block : 1)
+        }
+        thumbnailsBusy = true
+        renderer.render(renderJobs, from: source) { [weak self] images in
+            guard let self else { return }
+            self.thumbnailsBusy = false
+            var out: [String: NSImage] = [:]
+            for (job, image) in zip(jobs, images) {
+                if let image { out[job.id] = NSImage(cgImage: image, size: LensModel.thumbnailSize) }
+            }
+            self.model.thumbnails.merge(out) { $1 }
         }
     }
 

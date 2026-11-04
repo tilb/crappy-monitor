@@ -9,6 +9,8 @@ final class LensModel: ObservableObject {
     private let defaults: UserDefaults
 
     static let repoURL = "https://github.com/tilb/crappy-monitor"
+    /// Strip thumbnails: a 1:1 crop of the display (Handoff: 124 × 70 pt).
+    static let thumbnailSize = CGSize(width: 124, height: 70)
 
     // MARK: Published state
 

@@ -81,7 +81,7 @@ struct TileView: View {
         VStack(alignment: .leading, spacing: 5) {
             ZStack(alignment: .topTrailing) {
                 thumbnail
-                    .frame(width: Thumbnailer.tileSize.width, height: Thumbnailer.tileSize.height)
+                    .frame(width: LensModel.thumbnailSize.width, height: LensModel.thumbnailSize.height)
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -182,7 +182,7 @@ struct MoreTile: View {
                 Image(systemName: "plus").font(.system(size: 16))
                 Text("More…").font(.system(size: 12))
             }
-            .frame(width: 100, height: Thumbnailer.tileSize.height)
+            .frame(width: 100, height: LensModel.thumbnailSize.height)
             .overlay(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))

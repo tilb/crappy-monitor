@@ -203,7 +203,7 @@ Tab and arrow keys, tile VoiceOver labels):
                   specs → base parameters      (§7.2)
                   base + age → aged parameters (§7.3)
                   + edits
-                             │  FilterParameters: tone LUT (3 × 256), wear terms,
+                             │  ShaderUniforms: tone curve terms, wear terms,
                              │  gamut matrix, uniformity, block size
                              ▼
    ScreenCaptureKit frame ──► LensRenderer (Metal, one shader)
@@ -242,6 +242,8 @@ Tab and arrow keys, tile VoiceOver labels):
 | `LensPrototype/LensRenderer.swift` (shader approach) | **Promote the approach**, rewrite for MonitorFilter parameters, two displays and offscreen thumbnails. |
 | `LensPrototype/LensModel.swift`, `LensWindowController.swift`, views | **Rewrite** with tests; the prototype is the reference for behaviour. |
 | `LensPrototype/Thumbnailer.swift` | **Delete** (thumbnails move to the renderer, Vraag 4). |
+
+_T4 note (2026-11-04):_ the shader computes the panel tone curve from its terms (gamma, TN midtone drift, VA shadow crush) instead of a 3 × 256 table, so block-averaged values between two 8-bit levels are exact. A calibrated measured curve can still become a table later. Block size stays one display point per monitor pixel, as in the prototype.
 | `LensPrototype/LensSnapshots.swift` | **Keep as a debug tool** for layout checks. |
 
 ## 7. Monitor model
@@ -907,7 +909,7 @@ Effort assumption: human-team vs CC ratios from the skill defaults (features ~30
   - Surfaced by: PRD §7, Vraag 4, Vraag 12 (R8)
   - Files: CrappyMonitor/Filter/*, CrappyMonitorTests/MonitorFilterTests.swift
   - Verify: xcodebuild test; wear-direction and regression tests green
-- [ ] **T4 (P1, human: ~2 days / CC: ~1h)** — render — LensRenderer draws lens and offscreen thumbnails; CPU reference comparison tests
+- [x] **T4 (P1, human: ~2 days / CC: ~1h)** — render — LensRenderer draws lens and offscreen thumbnails; CPU reference comparison tests
   - Surfaced by: Scope Challenge Vraag 4
   - Files: CrappyMonitor/Render/*, tests
   - Verify: shader vs reference tests for lens and thumbnail targets

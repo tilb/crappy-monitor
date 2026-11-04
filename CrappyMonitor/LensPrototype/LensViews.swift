@@ -4,6 +4,7 @@ import SwiftUI
 /// Lets the window controller find the lens view (for its on-screen rect).
 final class LensGeometry {
     weak var view: LensMTKView?
+    var renderer: LensRenderer?   // shared by the lens and the thumbnails
 }
 
 struct LensRootView: View {
@@ -82,7 +83,9 @@ struct LensSurface: NSViewRepresentable {
 
     func makeNSView(context: Context) -> LensMTKView {
         let view = LensMTKView(frame: .zero)
-        _ = LensRenderer(view: view, capture: capture, model: model)   // retained by the view
+        if let renderer = geometry.renderer {
+            LensViewDriver(view: view, renderer: renderer, capture: capture, model: model)   // kept by the view
+        }
         geometry.view = view
         return view
     }
