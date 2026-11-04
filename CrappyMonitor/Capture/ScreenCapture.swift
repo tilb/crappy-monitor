@@ -26,6 +26,12 @@ final class ScreenCapture {
     /// Called when a running stream dies (permission revoked, display gone…).
     var onStop: ((Error) -> Void)?
 
+    /// Called on a capture queue for every new frame (the screen under it changed).
+    nonisolated var onFrame: (@Sendable () -> Void)? {
+        get { store.onFrame }
+        set { store.onFrame = newValue }
+    }
+
     static var hasPermission: Bool { CGPreflightScreenCaptureAccess() }
 
     /// The latest frame of every running display. Safe from any thread.
@@ -86,12 +92,21 @@ final class ScreenCapture {
 private final class FrameStore: @unchecked Sendable {
     private let lock = NSLock()
     private var frames: [CGDirectDisplayID: ScreenCapture.Frame] = [:]
+    private var _onFrame: (@Sendable () -> Void)?
+
+    var onFrame: (@Sendable () -> Void)? {
+        get { lock.lock(); defer { lock.unlock() }; return _onFrame }
+        set { lock.lock(); _onFrame = newValue; lock.unlock() }
+    }
 
     var all: [ScreenCapture.Frame] {
         lock.lock(); defer { lock.unlock() }
         return frames.keys.sorted().compactMap { frames[$0] }
     }
-    func set(_ f: ScreenCapture.Frame) { lock.lock(); frames[f.displayID] = f; lock.unlock() }
+    func set(_ f: ScreenCapture.Frame) {
+        lock.lock(); frames[f.displayID] = f; let notify = _onFrame; lock.unlock()
+        notify?()
+    }
     func remove(_ id: CGDirectDisplayID) { lock.lock(); frames[id] = nil; lock.unlock() }
 }
 

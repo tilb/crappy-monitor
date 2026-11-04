@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import MetalKit
 
 /// The lens: the part of the captured display under this view, drawn by `LensRenderer`.
@@ -15,37 +16,89 @@ final class LensMTKView: MTKView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
-/// Feeds the latest capture frames and the model's filter to the renderer, 30 times a second.
+/// When to draw (PRD §6, review Vraag 13): only after something changed, at most 30
+/// times a second. Window moves draw at once so dragging stays smooth.
+struct RedrawPacer {
+    static let minimumInterval: CFTimeInterval = 1.0 / 30
+
+    /// Seconds to wait before the next draw, given when the last one happened.
+    static func delay(now: CFTimeInterval, lastDraw: CFTimeInterval) -> CFTimeInterval {
+        max(0, lastDraw + minimumInterval - now)
+    }
+}
+
+/// Feeds the latest capture frames and the model's filter to the renderer. The view only
+/// draws on request: a new captured frame, a change that affects the lens, ⌥, a window
+/// move or a resize.
 final class LensViewDriver: NSObject, MTKViewDelegate {
     private let renderer: LensRenderer
     private let capture: ScreenCapture
     private weak var model: LensModel?
+    private weak var view: LensMTKView?
+    private var cancellables = Set<AnyCancellable>()
+    private var lastDraw: CFTimeInterval = 0
+    private var redrawPending = false
+    /// Draws so far, for tests and the debug log.
+    private(set) var drawCount = 0
 
     @discardableResult
     init(view: LensMTKView, renderer: LensRenderer, capture: ScreenCapture, model: LensModel) {
         self.renderer = renderer
         self.capture = capture
         self.model = model
+        self.view = view
         super.init()
         view.device = renderer.device
         view.colorPixelFormat = .bgra8Unorm
         view.framebufferOnly = true
-        view.preferredFramesPerSecond = 30
+        // Draw on request only, never on a fixed 30 fps timer.
+        view.isPaused = true
+        view.enableSetNeedsDisplay = true
         view.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)   // off every display
         if let layer = view.layer as? CAMetalLayer {
             layer.colorspace = CGColorSpace(name: CGColorSpace.sRGB)   // matches ScreenCapture
         }
         view.delegate = self
         view.driver = self   // the view keeps its driver
+
+        let redraw = WeakRedraw(self)
+        capture.onFrame = { DispatchQueue.main.async { redraw.fire() } }
+        // Everything `lensFilter` and `showsOriginal` read. @Published fires on willSet,
+        // and setNeedsRedraw draws on a later turn, so the new values are in place.
+        Publishers.MergeMany(model.$activeID.map { _ in () }.eraseToAnyPublisher(),
+                             model.$age.map { _ in () }.eraseToAnyPublisher(),
+                             model.$edits.map { _ in () }.eraseToAnyPublisher(),
+                             model.$previewID.map { _ in () }.eraseToAnyPublisher(),
+                             model.$optionHeld.map { _ in () }.eraseToAnyPublisher())
+            .dropFirst(5)
+            .sink { [weak self] in self?.setNeedsRedraw() }
+            .store(in: &cancellables)
     }
 
-    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
+    /// Something under or about the lens changed: draw soon, at most 30 times a second.
+    func setNeedsRedraw() {
+        guard !redrawPending else { return }
+        redrawPending = true
+        let wait = RedrawPacer.delay(now: CACurrentMediaTime(), lastDraw: lastDraw)
+        DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
+            guard let self else { return }
+            self.redrawPending = false
+            self.view?.draw()
+        }
+    }
+
+    /// The window moved: draw now so the lens keeps up with the drag.
+    func redrawNow() { view?.draw() }
+
+    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) { setNeedsRedraw() }
 
     func draw(in view: MTKView) {
         guard let view = view as? LensMTKView,
               let pass = view.currentRenderPassDescriptor,
               let drawable = view.currentDrawable,
               let cmd = renderer.makeCommandBuffer() else { return }
+        lastDraw = CACurrentMediaTime()
+        drawCount += 1
         if let job = job(for: view) {
             renderer.encode(into: cmd, pass: pass, job: job)
         } else if let enc = cmd.makeRenderCommandEncoder(descriptor: pass) {
@@ -82,4 +135,11 @@ final class LensViewDriver: NSObject, MTKViewDelegate {
         return LensRenderer.image(fromBGRA: px, job.width, job.height)
     }
     #endif
+}
+
+/// Lets a capture queue ask the main thread for a redraw without holding the driver.
+private final class WeakRedraw: @unchecked Sendable {
+    private weak var driver: LensViewDriver?
+    init(_ driver: LensViewDriver) { self.driver = driver }
+    func fire() { driver?.setNeedsRedraw() }   // main thread only
 }

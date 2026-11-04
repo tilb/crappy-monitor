@@ -267,3 +267,14 @@ final class LensLayoutTests: XCTestCase {
         XCTAssertEqual(p[1].scissor.height, 100)
     }
 }
+
+final class RedrawPacerTests: XCTestCase {
+    func testDrawsAtOnceAfterAQuietSpell() {
+        XCTAssertEqual(RedrawPacer.delay(now: 10, lastDraw: 9), 0)
+    }
+
+    func testCapsAtThirtyFramesASecond() {
+        XCTAssertEqual(RedrawPacer.delay(now: 10.01, lastDraw: 10), 1.0 / 30 - 0.01, accuracy: 1e-9)
+        XCTAssertEqual(RedrawPacer.delay(now: 10, lastDraw: 10), 1.0 / 30, accuracy: 1e-9)
+    }
+}

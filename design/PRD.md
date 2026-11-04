@@ -922,10 +922,12 @@ Effort assumption: human-team vs CC ratios from the skill defaults (features ~30
   - Surfaced by: Section 1 R6 (Vraag 10), Scope R2/R3 (Vraag 6, 7)
   - Files: CrappyMonitor/Window/*, tests
   - Verify: hand-back table test; manual Spaces and click-through checks
+  - Status 2026-11-04: click-through and the ⌘ hand-back are out (Change after the reviews). The full-screen behaviour (full-screen auxiliary, move to active Space, green button zooms) has been in place since the M0 spike; only the manual check over a full-screen app and after a Space switch is open.
 - [ ] **T7 (P2, human: ~4h / CC: ~15min)** — performance — Redraw on change only (max 30 fps), pause when miniaturised or covered
   - Surfaced by: Section 4 R9 (Vraag 13)
   - Files: CrappyMonitor/Render/*, CrappyMonitor/Window/*
   - Verify: Instruments energy and frame-drop check before beta
+  - Status 2026-11-04: built. The lens draws on request only (new captured frame, lens-relevant setting, ⌥, window move, resize), at most 30 fps, moves draw at once; capture and thumbnails stop while the window is not visible (occlusion). Still open: the Instruments energy and frame-drop check.
 - [x] **T8 (P2, human: ~4h / CC: ~15min)** — cleanup — Apply the §6.1 code plan; retire the listed tests
   - Surfaced by: Section 2 R7 (Vraag 11), Section 3 tests to retire
   - Files: CrappyMonitor/App/*, Display/*, ControlPanel/*, CrappyMonitorTests/*

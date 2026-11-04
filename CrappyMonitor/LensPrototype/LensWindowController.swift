@@ -143,6 +143,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     /// Called on start and whenever the window moves, resizes or the displays change.
     private func updateCapture() {
         guard model.captureState == .running || model.captureState == .starting,
+              isOnScreen || model.captureState == .starting,
               let rect = lensRect else { return }
         Task { @MainActor in
             do {
@@ -159,9 +160,28 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         }
     }
 
-    func windowDidMove(_ notification: Notification) { updateCapture() }
+    func windowDidMove(_ notification: Notification) {
+        geometry.view?.driver?.redrawNow()
+        updateCapture()
+    }
     func windowDidResize(_ notification: Notification) { updateCapture() }
     func windowDidChangeScreen(_ notification: Notification) { updateCapture() }
+
+    /// Miniaturised, on another Space or fully covered: pause capture, drawing and
+    /// thumbnails; pick up again when any of the window shows (PRD §6, Vraag 13).
+    func windowDidChangeOcclusionState(_ notification: Notification) {
+        guard let window, model.captureState == .running || model.captureState == .starting else { return }
+        if window.occlusionState.contains(.visible) {
+            updateCapture()
+            restartThumbTimer()
+        } else {
+            thumbTimer?.invalidate()
+            let capture = self.capture
+            Task { await capture.stop() }
+        }
+    }
+
+    private var isOnScreen: Bool { window?.occlusionState.contains(.visible) ?? false }
 
     @objc private func screensDidChange() {
         // Display frames may have moved: restart every stream with the new geometry.
