@@ -64,9 +64,9 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         model.retryCapture = { [weak self] in self?.startCapture() }
         capture.onStop = { [weak self] _ in
             guard let self else { return }
-            self.model.captureState = ScreenCapture.hasPermission
-                ? .failed("Screen capture stopped unexpectedly.")
-                : .needsPermission
+            // A display that went away is fine: cover what is left. Anything else is shown.
+            guard ScreenCapture.hasPermission else { self.model.captureState = .needsPermission; return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.updateCapture() }
         }
     }
 
@@ -132,13 +132,25 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
 
     private func startCapture() {
-        guard let screen = window?.screen ?? NSScreen.main else { return }
         model.captureState = .starting
+        updateCapture()
+    }
+
+    /// The rect the capture must cover: the lens, or the whole window before it has a lens.
+    private var lensRect: CGRect? { geometry.view?.rectOnScreen ?? window?.frame }
+
+    /// Starts streams for the displays under the lens and stops the others (PRD §6, Vraag 9).
+    /// Called on start and whenever the window moves, resizes or the displays change.
+    private func updateCapture() {
+        guard model.captureState == .running || model.captureState == .starting,
+              let rect = lensRect else { return }
         Task { @MainActor in
             do {
-                try await capture.start(screen: screen)
-                model.captureState = .running
-                renderThumbnails(force: true)
+                try await capture.cover(rect)
+                if model.captureState != .running {
+                    model.captureState = .running
+                    renderThumbnails(force: true)
+                }
             } catch {
                 model.captureState = ScreenCapture.hasPermission
                     ? .failed(error.localizedDescription)
@@ -147,10 +159,17 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         }
     }
 
-    func windowDidChangeScreen(_ notification: Notification) {
-        guard model.captureState == .running,
-              window?.screen?.displayID != capture.displayID else { return }
-        startCapture()
+    func windowDidMove(_ notification: Notification) { updateCapture() }
+    func windowDidResize(_ notification: Notification) { updateCapture() }
+    func windowDidChangeScreen(_ notification: Notification) { updateCapture() }
+
+    @objc private func screensDidChange() {
+        // Display frames may have moved: restart every stream with the new geometry.
+        guard model.captureState == .running else { return }
+        Task { @MainActor in
+            await capture.stop()
+            updateCapture()
+        }
     }
 
     @objc private func appDidBecomeActive() {
@@ -169,6 +188,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.layoutForState()
+                self?.updateCapture()   // the lens grows or shrinks inside the window
                 self?.renderThumbnails(force: true)
             }
             .store(in: &cancellables)
@@ -189,6 +209,8 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
 
         NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive),
                                                name: NSApplication.didBecomeActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(screensDidChange),
+                                               name: NSApplication.didChangeScreenParametersNotification, object: nil)
     }
 
     private func scheduleChromeUpdate() {
@@ -276,7 +298,6 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private func renderThumbnails(force: Bool = false) {
         guard model.stripVisible, let window, window.isVisible,
               force || window.isKeyWindow,
-              let frame = capture.latest,
               let lens = geometry.view?.rectOnScreen else { return }
 
         let pointer = NSEvent.mouseLocation
@@ -286,7 +307,11 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         var ids = [model.activeID]
         for id in model.favourites where !ids.contains(id) { ids.append(id) }
         let jobs = ids.compactMap { id in model.filter(for: id).map { (id: id, filter: $0) } }
-        guard !thumbnailsBusy, let renderer, let source = renderer.source(for: frame.buffer) else { return }
+        // The display under the crop centre; the crop stays inside that display.
+        let frames = capture.frames
+        guard !thumbnailsBusy, let renderer,
+              let frame = frames.first(where: { $0.displayFrame.contains(center) }) ?? frames.first,
+              let source = renderer.source(for: frame.buffer) else { return }
 
         // A 1:1 crop of the display around the pointer (or the lens centre), drawn by the
         // same shader as the lens, one offscreen pass per tile (PRD §6).
@@ -298,12 +323,12 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
                            Float(min(max(cy - Double(h) / 2, 0), max(bufH - Double(h), 0)).rounded()))
         let original = model.showsOriginal
         let block = Int(max(1, ppp.rounded()))
+        let part = LensRenderer.Part(source: source, region: RenderRegion(origin: origin), nonRetinaBlock: block)
         let renderJobs = jobs.map {
-            LensRenderer.Job(region: RenderRegion(origin: origin), width: w, height: h, filter: $0.filter,
-                             original: original, block: $0.filter.nonRetina && !original ? block : 1)
+            LensRenderer.Job(parts: [part], width: w, height: h, filter: $0.filter, original: original)
         }
         thumbnailsBusy = true
-        renderer.render(renderJobs, from: source) { [weak self] images in
+        renderer.render(renderJobs) { [weak self] images in
             guard let self else { return }
             self.thumbnailsBusy = false
             var out: [String: NSImage] = [:]

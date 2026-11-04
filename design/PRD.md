@@ -917,6 +917,7 @@ Effort assumption: human-team vs CC ratios from the skill defaults (features ~30
   - Surfaced by: Section 1 R5 (Vraag 9), Section 4 R10 (Vraag 14)
   - Files: CrappyMonitor/Capture/*, tests
   - Verify: overlap unit test; two-display manual check; Instruments memory
+  - Status 2026-11-04: built and unit-tested (overlap, placements, a lens across two captures). Still open: the two-display manual check (only one display was available) and the Instruments memory check.
 - [ ] **T6 (P2, human: ~1 day / CC: ~30min)** — window — Full-screen Spaces behaviour, click-through with ⌃⌘T and accent border, ⌘ hand-back as a pure function
   - Surfaced by: Section 1 R6 (Vraag 10), Scope R2/R3 (Vraag 6, 7)
   - Files: CrappyMonitor/Window/*, tests

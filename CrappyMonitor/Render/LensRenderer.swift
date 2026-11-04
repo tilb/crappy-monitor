@@ -65,38 +65,59 @@ final class LensRenderer {
 
     // MARK: Drawing
 
-    /// Draws `source` through `filter` into `pass`. `filter == nil` or `original` shows the
-    /// capture unchanged (hold ⌥). `block` > 1 averages blocks of that many capture
-    /// pixels into one (non-retina).
-    func encode(into cmd: MTLCommandBuffer, pass: MTLRenderPassDescriptor, source: Source,
-                region: RenderRegion, filter: MonitorFilter?, original: Bool, block: Int) {
-        var u = ShaderUniforms(filter: filter, original: original, block: block, region: region,
-                               sourceSize: SIMD2(Float(source.texture.width), Float(source.texture.height)))
-        guard let enc = cmd.makeRenderCommandEncoder(descriptor: pass) else { return }
-        enc.setRenderPipelineState(pipeline)
-        enc.setFragmentTexture(source.texture, index: 0)
-        enc.setFragmentBytes(&u, length: MemoryLayout<ShaderUniforms>.stride, index: 0)
-        enc.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-        enc.endEncoding()
-        let keep = source
-        cmd.addCompletedHandler { _ in _ = keep }
+    /// One display's share of a target: its capture, where the target sits on it, and
+    /// which target pixels it covers (nil = all of them).
+    struct Part {
+        var source: Source
+        var region: RenderRegion
+        var scissor: MTLScissorRect? = nil
+        /// Capture pixels per monitor pixel when the filter asks for non-retina.
+        var nonRetinaBlock = 1
     }
 
-    /// One offscreen job: a target of `width` × `height` pixels.
+    /// A target of `width` × `height` pixels, drawn from one or more displays.
     struct Job {
-        var region: RenderRegion
+        var parts: [Part]
         var width: Int
         var height: Int
         var filter: MonitorFilter?
         var original = false
-        var block = 1
+    }
+
+    /// Draws `job` into `pass`, one draw per part. `filter == nil` or `original` shows the
+    /// capture unchanged (hold ⌥). Pixels no part covers keep the clear colour.
+    func encode(into cmd: MTLCommandBuffer, pass: MTLRenderPassDescriptor, job: Job) {
+        guard let enc = cmd.makeRenderCommandEncoder(descriptor: pass) else { return }
+        enc.setRenderPipelineState(pipeline)
+        let nonRetina = (job.filter?.nonRetina ?? false) && !job.original
+        for part in job.parts {
+            let full = MTLScissorRect(x: 0, y: 0, width: job.width, height: job.height)
+            let s = Self.clamp(part.scissor ?? full, to: full)
+            guard s.width > 0, s.height > 0 else { continue }
+            enc.setScissorRect(s)
+            var u = ShaderUniforms(filter: job.filter, original: job.original,
+                                   block: nonRetina ? part.nonRetinaBlock : 1, region: part.region,
+                                   sourceSize: SIMD2(Float(part.source.texture.width), Float(part.source.texture.height)))
+            enc.setFragmentTexture(part.source.texture, index: 0)
+            enc.setFragmentBytes(&u, length: MemoryLayout<ShaderUniforms>.stride, index: 0)
+            enc.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        }
+        enc.endEncoding()
+        let keep = job.parts.map(\.source)
+        cmd.addCompletedHandler { _ in _ = keep }
+    }
+
+    private static func clamp(_ s: MTLScissorRect, to b: MTLScissorRect) -> MTLScissorRect {
+        let x0 = min(max(s.x, 0), b.width), y0 = min(max(s.y, 0), b.height)
+        let x1 = min(max(s.x + s.width, x0), b.width), y1 = min(max(s.y + s.height, y0), b.height)
+        return MTLScissorRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)
     }
 
     /// Renders every job offscreen in one command buffer and hands back the pixels
     /// (BGRA, sRGB-encoded) on the main thread. Used for the strip thumbnails.
-    func render(_ jobs: [Job], from source: Source, completion: @escaping ([CGImage?]) -> Void) {
+    func render(_ jobs: [Job], completion: @escaping ([CGImage?]) -> Void) {
         guard let cmd = queue.makeCommandBuffer() else { completion(jobs.map { _ in nil }); return }
-        let targets = encodeOffscreen(jobs, from: source, into: cmd)
+        let targets = encodeOffscreen(jobs, into: cmd)
         cmd.addCompletedHandler { _ in
             let images = zip(targets, jobs).map { t, j in t.flatMap { Self.image(from: $0, j.width, j.height) } }
             DispatchQueue.main.async { completion(images) }
@@ -105,15 +126,15 @@ final class LensRenderer {
     }
 
     /// Synchronous version, for tests and the snapshot tour.
-    func renderNow(_ job: Job, from source: Source) -> [UInt8]? {
+    func renderNow(_ job: Job) -> [UInt8]? {
         guard let cmd = queue.makeCommandBuffer() else { return nil }
-        let targets = encodeOffscreen([job], from: source, into: cmd)
+        let targets = encodeOffscreen([job], into: cmd)
         cmd.commit()
         cmd.waitUntilCompleted()
         return targets[0].map { Self.bytes(of: $0, job.width, job.height) }
     }
 
-    private func encodeOffscreen(_ jobs: [Job], from source: Source, into cmd: MTLCommandBuffer) -> [MTLTexture?] {
+    private func encodeOffscreen(_ jobs: [Job], into cmd: MTLCommandBuffer) -> [MTLTexture?] {
         let targets: [MTLTexture?] = jobs.map { job in
             guard job.width > 0, job.height > 0 else { return nil }
             let td = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: job.width,
@@ -128,8 +149,7 @@ final class LensRenderer {
             pass.colorAttachments[0].texture = target
             pass.colorAttachments[0].loadAction = .clear
             pass.colorAttachments[0].storeAction = .store
-            encode(into: cmd, pass: pass, source: source, region: job.region,
-                   filter: job.filter, original: job.original, block: job.block)
+            encode(into: cmd, pass: pass, job: job)
         }
         if let blit = cmd.makeBlitCommandEncoder() {
             targets.compactMap { $0 }.forEach { blit.synchronize(resource: $0) }
