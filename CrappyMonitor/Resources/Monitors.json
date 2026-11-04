@@ -1,0 +1,412 @@
+{
+  "schemaVersion": 2,
+  "note": "Crappy Monitor 2 library. Research and sources: design/monitor-research.md. Order = research rank; the first entry is the first-run default. EDID data from linuxhw/EDID, CC-BY-4.0.",
+  "monitors": [
+    {
+      "id": "dell-p2419h",
+      "brand": "Dell",
+      "model": "P2419H",
+      "released": 2018,
+      "panelType": "IPS",
+      "backlight": "W-LED",
+      "sizeInches": 23.8,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "contrastRatio": 1000,
+      "maxBrightness": 250,
+      "gamutSpec": "72 % NTSC (CIE 1931)",
+      "primaries": {
+        "red": [
+          0.6523,
+          0.3359
+        ],
+        "green": [
+          0.3212,
+          0.6103
+        ],
+        "blue": [
+          0.1533,
+          0.0605
+        ],
+        "white": [
+          0.3134,
+          0.3291
+        ]
+      },
+      "sources": {
+        "specs": "https://i.dell.com/sites/csdocuments/Product_Docs/en/dell_24_monitor_p2419h_data_sheet.pdf",
+        "primaries": "https://github.com/linuxhw/EDID (DELD0DA)",
+        "released": "https://github.com/linuxhw/EDID (DELD0DA, earliest manufacture year)"
+      },
+      "estimated": []
+    },
+    {
+      "id": "dell-u2412m",
+      "brand": "Dell",
+      "model": "U2412M",
+      "released": 2011,
+      "panelType": "IPS",
+      "backlight": "W-LED",
+      "sizeInches": 24.0,
+      "resolution": [
+        1920,
+        1200
+      ],
+      "contrastRatio": 1000,
+      "maxBrightness": 300,
+      "gamutSpec": "71 % NTSC, 95.8 % sRGB",
+      "primaries": {
+        "red": [
+          0.6396,
+          0.33
+        ],
+        "green": [
+          0.2998,
+          0.5996
+        ],
+        "blue": [
+          0.1503,
+          0.0595
+        ],
+        "white": [
+          0.3134,
+          0.3291
+        ]
+      },
+      "sources": {
+        "specs": "https://tftcentral.co.uk/reviews/dell_u2412m.htm",
+        "primaries": "https://github.com/linuxhw/EDID (DELA07B)",
+        "released": "https://tftcentral.co.uk/reviews/dell_u2412m.htm"
+      },
+      "estimated": []
+    },
+    {
+      "id": "dell-p2417h",
+      "brand": "Dell",
+      "model": "P2417H",
+      "released": 2016,
+      "panelType": "IPS",
+      "backlight": "W-LED",
+      "sizeInches": 23.8,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "contrastRatio": 1000,
+      "maxBrightness": 250,
+      "gamutSpec": "72 % NTSC (CIE 1931)",
+      "primaries": {
+        "red": [
+          0.6523,
+          0.3359
+        ],
+        "green": [
+          0.3212,
+          0.6103
+        ],
+        "blue": [
+          0.1533,
+          0.0605
+        ],
+        "white": [
+          0.3134,
+          0.3291
+        ]
+      },
+      "sources": {
+        "specs": "https://dl.dell.com/manuals/all-products/esuprt_display_projector/esuprt_display/dell-p2417h-monitor_user's_guide_en-us.pdf",
+        "primaries": "https://github.com/linuxhw/EDID (DELA0DC)",
+        "released": "https://github.com/linuxhw/EDID (DELA0DC, earliest manufacture year)"
+      },
+      "estimated": []
+    },
+    {
+      "id": "hp-e243",
+      "brand": "HP",
+      "model": "EliteDisplay E243",
+      "released": 2016,
+      "panelType": "IPS",
+      "backlight": "W-LED",
+      "sizeInches": 23.8,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "contrastRatio": 1000,
+      "maxBrightness": 250,
+      "gamutSpec": null,
+      "primaries": {
+        "red": [
+          0.6386,
+          0.3574
+        ],
+        "green": [
+          0.3085,
+          0.6376
+        ],
+        "blue": [
+          0.1523,
+          0.0693
+        ],
+        "white": [
+          0.3134,
+          0.3291
+        ]
+      },
+      "sources": {
+        "specs": "https://support.hp.com/ca-en/product/product-specs/hp-elitedisplay-e243-23.8-inch-monitor/17210316",
+        "primaries": "https://github.com/linuxhw/EDID (HPN3468)",
+        "released": "https://github.com/linuxhw/EDID (HPN3468, earliest manufacture year)"
+      },
+      "estimated": [
+        "released"
+      ]
+    },
+    {
+      "id": "lenovo-t24i-10",
+      "brand": "Lenovo",
+      "model": "ThinkVision T24i-10",
+      "released": 2017,
+      "panelType": "IPS",
+      "backlight": "W-LED",
+      "sizeInches": 23.8,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "contrastRatio": 1000,
+      "maxBrightness": 250,
+      "gamutSpec": "72 % NTSC (CIE 1931)",
+      "primaries": {
+        "red": [
+          0.6396,
+          0.33
+        ],
+        "green": [
+          0.2998,
+          0.5996
+        ],
+        "blue": [
+          0.1503,
+          0.0595
+        ],
+        "white": [
+          0.3134,
+          0.3291
+        ]
+      },
+      "sources": {
+        "specs": "https://psref.lenovo.com/syspool/Sys/PDF/ThinkVision/ThinkVision_T24i_10/ThinkVision_T24i_10_Spec.PDF",
+        "primaries": "https://github.com/linuxhw/EDID (LEN61CE)",
+        "released": "https://github.com/linuxhw/EDID (LEN61CE, earliest manufacture year)"
+      },
+      "estimated": []
+    },
+    {
+      "id": "hp-la2205wg",
+      "brand": "HP",
+      "model": "LA2205wg",
+      "released": 2009,
+      "panelType": "TN",
+      "backlight": "CCFL",
+      "sizeInches": 22.0,
+      "resolution": [
+        1680,
+        1050
+      ],
+      "contrastRatio": 1000,
+      "maxBrightness": 250,
+      "gamutSpec": null,
+      "primaries": {
+        "red": [
+          0.6406,
+          0.3349
+        ],
+        "green": [
+          0.2978,
+          0.6113
+        ],
+        "blue": [
+          0.1474,
+          0.0703
+        ],
+        "white": [
+          0.3134,
+          0.3291
+        ]
+      },
+      "sources": {
+        "specs": "https://manualmachine.com/hp/nm274aa/21237459-quickspecs",
+        "primaries": "https://github.com/linuxhw/EDID (HWP2849)",
+        "released": "https://github.com/linuxhw/EDID (HWP2849, earliest manufacture year)",
+        "size": "https://h10032.www1.hp.com/ctg/Manual/c03285508.pdf"
+      },
+      "estimated": [
+        "released",
+        "backlight"
+      ]
+    },
+    {
+      "id": "eizo-ev2450",
+      "brand": "EIZO",
+      "model": "FlexScan EV2450",
+      "released": 2014,
+      "panelType": "IPS",
+      "backlight": "W-LED",
+      "sizeInches": 23.8,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "contrastRatio": 1000,
+      "maxBrightness": 250,
+      "gamutSpec": "≈ sRGB, ~72 % NTSC",
+      "primaries": {
+        "red": [
+          0.6552,
+          0.3349
+        ],
+        "green": [
+          0.33,
+          0.6103
+        ],
+        "blue": [
+          0.1503,
+          0.0595
+        ],
+        "white": [
+          0.3134,
+          0.3291
+        ]
+      },
+      "sources": {
+        "specs": "https://www.eizo.com/products/flexscan/ev2450/",
+        "primaries": "https://github.com/linuxhw/EDID (ENC2568)",
+        "released": "https://www.eizo.com/products/flexscan/ev2450/"
+      },
+      "estimated": []
+    },
+    {
+      "id": "lenovo-lt2252p",
+      "brand": "Lenovo",
+      "model": "ThinkVision LT2252p",
+      "released": 2011,
+      "panelType": "TN",
+      "backlight": "W-LED",
+      "sizeInches": 22.0,
+      "resolution": [
+        1680,
+        1050
+      ],
+      "contrastRatio": 1000,
+      "maxBrightness": 250,
+      "gamutSpec": "72 %",
+      "primaries": {
+        "red": [
+          0.6445,
+          0.3417
+        ],
+        "green": [
+          0.3085,
+          0.6201
+        ],
+        "blue": [
+          0.1513,
+          0.0585
+        ],
+        "white": [
+          0.3134,
+          0.3291
+        ]
+      },
+      "sources": {
+        "specs": "https://psref.lenovo.com/syspool/Sys/PDF/ThinkVision/ThinkVision_LT2252p/ThinkVision_LT2252p_Spec.pdf",
+        "primaries": "https://github.com/linuxhw/EDID (LEN0A0C)",
+        "released": "https://psref.lenovo.com/syspool/Sys/PDF/ThinkVision/ThinkVision_LT2252p/ThinkVision_LT2252p_Spec.pdf"
+      },
+      "estimated": []
+    },
+    {
+      "id": "iiyama-xu2492hsu",
+      "brand": "iiyama",
+      "model": "ProLite XU2492HSU",
+      "released": 2016,
+      "panelType": "IPS",
+      "backlight": "W-LED",
+      "sizeInches": 23.8,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "contrastRatio": 1000,
+      "maxBrightness": 250,
+      "gamutSpec": "99 % sRGB, 72 % NTSC",
+      "primaries": {
+        "red": [
+          0.6503,
+          0.3281
+        ],
+        "green": [
+          0.3115,
+          0.6191
+        ],
+        "blue": [
+          0.1513,
+          0.0468
+        ],
+        "white": [
+          0.3134,
+          0.3291
+        ]
+      },
+      "sources": {
+        "specs": "https://iiyama.com/gl_en/products/prolite-xu2492hsu-b1/",
+        "primaries": "https://github.com/linuxhw/EDID (IVM618E)",
+        "released": "https://github.com/linuxhw/EDID (IVM618E, earliest manufacture year)"
+      },
+      "estimated": []
+    },
+    {
+      "id": "hp-e24-g4",
+      "brand": "HP",
+      "model": "E24 G4",
+      "released": 2020,
+      "panelType": "IPS",
+      "backlight": "W-LED",
+      "sizeInches": 23.8,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "contrastRatio": 1000,
+      "maxBrightness": 250,
+      "gamutSpec": "72 % NTSC",
+      "primaries": {
+        "red": [
+          0.623,
+          0.3359
+        ],
+        "green": [
+          0.2958,
+          0.6171
+        ],
+        "blue": [
+          0.1435,
+          0.0664
+        ],
+        "white": [
+          0.3134,
+          0.3291
+        ]
+      },
+      "sources": {
+        "specs": "https://h20195.www2.hp.com/v2/getpdf.aspx/c06922717.pdf",
+        "primaries": "https://github.com/linuxhw/EDID (HPN3688)",
+        "released": "https://h20195.www2.hp.com/v2/getpdf.aspx/c06922717.pdf"
+      },
+      "estimated": []
+    }
+  ]
+}

@@ -4,30 +4,13 @@ import ScreenCaptureKit
 
 // LENS PROTOTYPE — M0 sandbox spike (PRD §9, task T1). Throwaway.
 // Proves inside the App Sandbox: capture of every display, window collection
-// behaviour, click-through with ⌘ hand-back, and Carbon hot keys. Results go to
+// behaviour and Carbon hot keys. (Click-through and display gamma were checked on
+// 2026-11-02 and removed with those features; results in PRD §9.) Results go to
 // the unified log (subsystem com.crappymonitor.app, category Spike).
 
 private let spikeLog = Logger(subsystem: "com.crappymonitor.app", category: "Spike")
 
 extension LensWindowController {
-
-    /// Click-through without Follow Pointer: clicks pass to the app below; hold ⌘
-    /// to use the lens window. ⌃⌘T toggles it from any app.
-    @objc func toggleSpikeClickThrough(_ sender: Any?) {
-        spikeClickThrough.toggle()
-        spikeMonitors.forEach(NSEvent.removeMonitor)
-        spikeMonitors.removeAll()
-        guard let window else { return }
-        window.ignoresMouseEvents = spikeClickThrough
-        spikeLog.notice("SPIKE click-through=\(self.spikeClickThrough, privacy: .public)")
-        guard spikeClickThrough else { return }
-        let update: (NSEvent) -> Void = { [weak self] _ in
-            guard let self, self.spikeClickThrough, let window = self.window else { return }
-            window.ignoresMouseEvents = !NSEvent.modifierFlags.contains(.command)
-        }
-        if let m = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged, handler: update) { spikeMonitors.append(m) }
-        if let m = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged, handler: { update($0); return $0 }) { spikeMonitors.append(m) }
-    }
 
     @objc func runSandboxChecks(_ sender: Any?) {
         let sandboxed = ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] != nil
@@ -36,29 +19,7 @@ extension LensWindowController {
             spikeLog.notice("SPIKE collectionBehavior=\(w.collectionBehavior.rawValue, privacy: .public) fullScreenAuxiliary=\(w.collectionBehavior.contains(.fullScreenAuxiliary), privacy: .public) level=\(w.level.rawValue, privacy: .public)")
         }
         spikeLog.notice("SPIKE screenCapturePreflight=\(CGPreflightScreenCaptureAccess(), privacy: .public)")
-        Self.checkGammaTables()
         Task { await Self.checkEveryDisplay() }
-    }
-
-    /// Whole Screen question: can a sandboxed app set display gamma tables?
-    /// Dims the main display to 60 % for 2 seconds, reads the table back, restores.
-    private static func checkGammaTables() {
-        let display = CGMainDisplayID()
-        let size = 256
-        let dim = (0..<size).map { CGGammaValue(Float($0) / Float(size - 1) * 0.6) }
-        let setErr = CGSetDisplayTransferByTable(display, UInt32(size), dim, dim, dim)
-        var r = [CGGammaValue](repeating: 0, count: size), g = r, b = r
-        var count: UInt32 = 0
-        let getErr = CGGetDisplayTransferByTable(display, UInt32(size), &r, &g, &b, &count)
-        let top = count > 0 ? r[Int(count) - 1] : -1
-        spikeLog.notice("SPIKE gamma set=\(setErr.rawValue, privacy: .public) get=\(getErr.rawValue, privacy: .public) samples=\(count, privacy: .public) readbackTop=\(top, privacy: .public) (expect ≈0.6 if applied)")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            CGDisplayRestoreColorSyncSettings()
-            var r2 = [CGGammaValue](repeating: 0, count: size), g2 = r2, b2 = r2
-            var c2: UInt32 = 0
-            CGGetDisplayTransferByTable(display, UInt32(size), &r2, &g2, &b2, &c2)
-            spikeLog.notice("SPIKE gamma restored readbackTop=\(c2 > 0 ? r2[Int(c2) - 1] : -1, privacy: .public)")
-        }
     }
 
     /// Starts a 2-second stream on every display and counts complete frames.

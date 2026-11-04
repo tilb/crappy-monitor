@@ -1,21 +1,19 @@
 import AppKit
 import CoreVideo
 
-// LENS PROTOTYPE — throwaway.
-
 /// Renders the strip tiles: a 1:1 crop (124 × 70 pt) of the captured screen,
 /// run through each monitor's tables on the CPU. Same tables as the lens.
 final class Thumbnailer {
     static let tileSize = CGSize(width: 124, height: 70)
 
     private let queue = DispatchQueue(label: "com.crappymonitor.lens.thumbs", qos: .userInitiated)
-    private var lutCache: [LensParams: [[UInt8]]] = [:]   // only touched on `queue`
+    private var lutCache: [MonitorFilter: [[UInt8]]] = [:]   // only touched on `queue`
     private var busy = false                               // main thread
 
     /// - Parameter center: crop centre in global screen points.
     func render(frame: ScreenCapture.Frame,
                 center: CGPoint,
-                jobs: [(id: String, params: LensParams)],
+                jobs: [(id: String, filter: MonitorFilter)],
                 completion: @escaping ([String: NSImage]) -> Void) {
         guard !busy else { return }
         busy = true
@@ -29,7 +27,7 @@ final class Thumbnailer {
     }
 
     private func renderSync(frame: ScreenCapture.Frame, center: CGPoint,
-                            jobs: [(id: String, params: LensParams)]) -> [String: NSImage] {
+                            jobs: [(id: String, filter: MonitorFilter)]) -> [String: NSImage] {
         let buf = frame.buffer
         let ppp = frame.pixelsPerPoint
         let w = Int(Self.tileSize.width * ppp), h = Int(Self.tileSize.height * ppp)
@@ -58,12 +56,12 @@ final class Thumbnailer {
         var out: [String: NSImage] = [:]
         let block = max(1, Int(ppp.rounded()))
         // Non-retina source: every block holds the average of its pixels, like the lens.
-        let averaged = (block > 1 && jobs.contains { $0.params.nonRetina })
+        let averaged = (block > 1 && jobs.contains { $0.filter.nonRetina })
             ? Self.blockAverage(crop, w, h, block: block, originX: x0, originY: y0) : crop
         for job in jobs {
-            let luts = lut(for: job.params)
+            let luts = lut(for: job.filter)
             let r = luts[0], g = luts[1], b = luts[2]
-            let src = job.params.nonRetina ? averaged : crop
+            let src = job.filter.nonRetina ? averaged : crop
             var px = [UInt8](repeating: 255, count: w * h * 4)
             for i in stride(from: 0, to: w * h * 4, by: 4) {
                 px[i] = b[Int(src[i])]
@@ -105,12 +103,12 @@ final class Thumbnailer {
         return out
     }
 
-    private func lut(for params: LensParams) -> [[UInt8]] {
-        if let hit = lutCache[params] { return hit }
-        let (r, g, b) = params.tables()
+    private func lut(for filter: MonitorFilter) -> [[UInt8]] {
+        if let hit = lutCache[filter] { return hit }
+        let (r, g, b) = filter.channelTables()   // per channel; gamut matrix arrives with T4
         let luts = [r, g, b].map { $0.map { UInt8(($0 * 255).rounded().clamped(to: 0...255)) } }
         if lutCache.count > 64 { lutCache.removeAll() }
-        lutCache[params] = luts
+        lutCache[filter] = luts
         return luts
     }
 
@@ -123,4 +121,8 @@ final class Thumbnailer {
               let cg = ctx.makeImage() else { return nil }
         return NSImage(cgImage: cg, size: tileSize)
     }
+}
+
+private extension Comparable {
+    func clamped(to r: ClosedRange<Self>) -> Self { min(max(self, r.lowerBound), r.upperBound) }
 }

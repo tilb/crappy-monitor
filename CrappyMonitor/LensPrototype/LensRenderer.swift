@@ -4,14 +4,11 @@ import Metal
 import MetalKit
 import os.log
 
-// LENS PROTOTYPE — throwaway.
-
 private let log = Logger(subsystem: "com.crappymonitor.app", category: "LensRenderer")
 
 /// Draws the part of the captured display that lies under this view, run through
-/// the 3 × 256 tables from `GammaController.buildTables`. The tables are looked
-/// up per channel on encoded values, which is exactly what
-/// `CGSetDisplayTransferByTable` does for Whole Screen.
+/// MonitorFilter's per-channel 3 × 256 tables, looked up on encoded values.
+/// T4 replaces this with the full filter (gamut matrix, corner falloff) in the shader.
 final class LensMTKView: MTKView {
     var renderer: LensRenderer?
 
@@ -31,7 +28,7 @@ final class LensRenderer: NSObject, MTKViewDelegate {
     private let pipeline: MTLRenderPipelineState
     private var textureCache: CVMetalTextureCache?
     private let tableTexture: MTLTexture
-    private var tableParams: LensParams?
+    private var tableFilter: MonitorFilter?
 
     private let capture: ScreenCapture
     private weak var model: LensModel?
@@ -90,8 +87,8 @@ final class LensRenderer: NSObject, MTKViewDelegate {
     private func encode(into cmd: MTLCommandBuffer, pass: MTLRenderPassDescriptor, view: LensMTKView) {
         guard let model else { return }
 
-        let params = model.lensParams
-        if params != tableParams { upload(params) }
+        let filter = model.lensFilter
+        if let filter, filter != tableFilter { upload(filter) }
 
         var sourceTexture: CVMetalTexture?
         var uniforms = Uniforms()
@@ -106,7 +103,7 @@ final class LensRenderer: NSObject, MTKViewDelegate {
             uniforms.origin = SIMD2(Float((rect.minX - frame.displayFrame.minX) * ppp),
                                     Float((frame.displayFrame.maxY - rect.maxY) * ppp))
             uniforms.scale = Float(ppp / viewScale)
-            uniforms.block = params.nonRetina && !model.showsOriginal ? Float(max(1, ppp.rounded())) : 1
+            uniforms.block = (filter?.nonRetina ?? false) && !model.showsOriginal ? Float(max(1, ppp.rounded())) : 1
             uniforms.original = model.showsOriginal ? 1 : 0
             uniforms.texSize = SIMD2(Float(w), Float(h))
         }
@@ -150,8 +147,10 @@ final class LensRenderer: NSObject, MTKViewDelegate {
     }
     #endif
 
-    private func upload(_ params: LensParams) {
-        let (r, g, b) = params.tables()
+    /// Per-channel tables from MonitorFilter (no gamut matrix yet: T4 moves the full
+    /// filter into the shader).
+    private func upload(_ filter: MonitorFilter) {
+        let (r, g, b) = filter.channelTables()
         var data = [Float](repeating: 1, count: 256 * 4)
         for i in 0..<256 {
             data[i * 4] = r[i]; data[i * 4 + 1] = g[i]; data[i * 4 + 2] = b[i]
@@ -160,7 +159,7 @@ final class LensRenderer: NSObject, MTKViewDelegate {
             tableTexture.replace(region: MTLRegionMake2D(0, 0, 256, 1), mipmapLevel: 0,
                                  withBytes: raw.baseAddress!, bytesPerRow: 256 * 4 * MemoryLayout<Float>.size)
         }
-        tableParams = params
+        tableFilter = filter
     }
 
     private struct Uniforms {

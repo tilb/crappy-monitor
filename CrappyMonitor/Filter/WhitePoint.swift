@@ -1,53 +1,11 @@
-import CoreGraphics
+import Foundation
 
-class GammaController {
-    private let tableSize = 256
-
-    func apply(settings: FilterSettings) {
-        guard settings.isEnabled else { restore(); return }
-        let (r, g, b) = buildTables(settings)
-        for display in activeDisplays() {
-            CGSetDisplayTransferByTable(display, UInt32(tableSize), r, g, b)
-        }
-    }
-
-    func restore() {
-        CGDisplayRestoreColorSyncSettings()
-    }
-
-    // Exposed for unit tests.
-    func buildTables(_ s: FilterSettings) -> ([CGGammaValue], [CGGammaValue], [CGGammaValue]) {
-        let (rMult, gMult, bMult) = colorMultipliers(for: s.colorTempShift)
-        let drift = Float(max(0.0, min(0.5, s.gammaDrift)))
-
-        var red   = [CGGammaValue](repeating: 0, count: tableSize)
-        var green = [CGGammaValue](repeating: 0, count: tableSize)
-        var blue  = [CGGammaValue](repeating: 0, count: tableSize)
-
-        for i in 0..<tableSize {
-            let v = Float(i) / Float(tableSize - 1)
-
-            // 1. Gamma curve + midtone drift (drift peaks at v=0.5, zero at v=0 and v=1)
-            let effectiveGamma = Float(s.gammaExponent) + drift * (1.0 - abs(2.0 * v - 1.0))
-            let curved = pow(max(v, 0), max(effectiveGamma, 0.1))
-
-            // 2. Contrast + brightness
-            let adjusted = Float((Double(curved) - 0.5) * s.contrast + 0.5 + s.brightness)
-
-            // 3. Black level lift
-            let floored = Float(s.blackLevel) + (1.0 - Float(s.blackLevel)) * adjusted
-
-            red[i]   = CGGammaValue(min(max(floored * rMult, 0), 1))
-            green[i] = CGGammaValue(min(max(floored * gMult, 0), 1))
-            blue[i]  = CGGammaValue(min(max(floored * bMult, 0), 1))
-        }
-        return (red, green, blue)
-    }
-
+/// White point maths. `multipliers(for:)` is v1's `GammaController.colorMultipliers(for:)`,
+/// moved unchanged (PRD §6.1, regression contract Vraag 12).
+enum WhitePoint {
     // Kang et al. 2002 — correlated color temperature to per-channel RGB multipliers.
     // Uses Bradford chromatic adaptation from the target white point to D65.
-    // Exposed for unit tests.
-    func colorMultipliers(for kelvin: Double) -> (r: Float, g: Float, b: Float) {
+    static func multipliers(for kelvin: Double) -> (r: Float, g: Float, b: Float) {
         // Clamp to Kang's valid range.
         let T = max(1667.0, min(25000.0, kelvin))
 
@@ -114,10 +72,9 @@ class GammaController {
         return (rM, gM, bM)
     }
 
-    func activeDisplays() -> [CGDirectDisplayID] {
-        var ids = [CGDirectDisplayID](repeating: 0, count: 8)
-        var count: UInt32 = 0
-        CGGetActiveDisplayList(8, &ids, &count)
-        return Array(ids.prefix(Int(count)))
+    /// Correlated colour temperature of a white point (McCamy 1992), in kelvin.
+    static func correlatedTemperature(of white: MonitorProfile.XY) -> Double {
+        let n = (white.x - 0.3320) / (0.1858 - white.y)
+        return 449 * n * n * n + 3525 * n * n + 6823.3 * n + 5520.33
     }
 }

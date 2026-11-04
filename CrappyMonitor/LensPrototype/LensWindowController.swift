@@ -3,21 +3,16 @@ import Carbon.HIToolbox
 import Combine
 import SwiftUI
 
-// LENS PROTOTYPE — throwaway.
-
 private extension NSToolbarItem.Identifier {
-    static let mode = Self("lens.mode")
-    static let follow = Self("lens.follow")
     static let strip = Self("lens.strip")
     static let search = Self("lens.search")
 }
 
-/// The lens window (HANDOFF D1–D5). Opened from the menu bar item; while it is
-/// open the app is a regular app with a Dock icon and a main menu.
+/// The lens window (HANDOFF D1, D3–D5; PRD §5). The app is a regular app whose one
+/// window is this lens.
 final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolbarDelegate,
                                   NSSearchFieldDelegate, NSMenuDelegate, NSMenuItemValidation {
     let model: LensModel
-    var onClose: (() -> Void)?
 
     private let capture = ScreenCapture()
     private let geometry = LensGeometry()
@@ -25,31 +20,22 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private let hotKeys = HotKeys()
     private var cancellables = Set<AnyCancellable>()
     private var thumbTimer: Timer?
-    private var followMonitors: [Any] = []
+    private var optionMonitors: [Any] = []
     private var outsideClickMonitor: Any?
-    private var savedGammaEnabled: Bool
     private var expandedFrame: NSRect?
     private var isCompact = false
     private var askedForPermission = false
     private var chromeUpdatePending = false
     private var lastPointerInLens: CGPoint?
 
-    // Sandbox spike (task T1); see LensSpike.swift.
-    var spikeClickThrough = false
-    var spikeMonitors: [Any] = []
-    var spikeCapture: ScreenCapture { capture }
-
-    private let modeControl = NSSegmentedControl()
-    private var followButton = NSButton()
     private var stripButton = NSButton()
     private var searchItem: NSSearchToolbarItem?
     private var resultsPanel: ResultsPanel?
     private var resultsHost: NSHostingView<SearchResultsView>?
     private let favouritesMenu = NSMenu(title: "Monitor")
 
-    init(presetsStore: PresetsStore, filterSettings: FilterSettings) {
-        model = LensModel(presetsStore: presetsStore, filterSettings: filterSettings)
-        savedGammaEnabled = filterSettings.isEnabled
+    init(library: MonitorLibrary) {
+        model = LensModel(library: library)
 
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1040, height: 678),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -91,10 +77,9 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     // MARK: - Open / close
 
     func show() {
-        NSApp.setActivationPolicy(.regular)
-        installMainMenu()
+        if NSApp.mainMenu?.items.count ?? 0 < 2 { installMainMenu() }
         registerHotKeys()
-        model.applyGammaForMode()
+        watchOptionKey()
         if window?.isVisible != true, !(window?.setFrameUsingName("LensPrototypeWindow") ?? false) {
             window?.center()
         }
@@ -109,24 +94,30 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
 
     func windowWillClose(_ notification: Notification) {
-        setFollowing(false)
-        hotKeys.unregisterAll()
         thumbTimer?.invalidate()
         hideResults()
+        optionMonitors.forEach(NSEvent.removeMonitor)
+        optionMonitors.removeAll()
         let capture = self.capture
         Task { await capture.stop() }
-        if model.mode == .lens {
-            model.filterSettings.isEnabled = savedGammaEnabled   // hand the screen back as it was
+    }
+
+    /// Hold ⌥ to see the original (global and local, like v1's A/B compare).
+    private func watchOptionKey() {
+        guard optionMonitors.isEmpty else { return }
+        let update: (NSEvent) -> Void = { [weak self] e in
+            let held = e.modifierFlags.contains(.option)
+            if self?.model.optionHeld != held { self?.model.optionHeld = held }
         }
-        NSApp.mainMenu = nil
-        NSApp.setActivationPolicy(.accessory)
-        onClose?()
+        if let m = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged, handler: update) { optionMonitors.append(m) }
+        if let m = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged, handler: { update($0); return $0 }) {
+            optionMonitors.append(m)
+        }
     }
 
     // MARK: - Capture
 
     private func startCaptureIfAllowed() {
-        guard model.mode == .lens else { return }
         guard ScreenCapture.hasPermission else {
             if !askedForPermission {
                 askedForPermission = true
@@ -139,9 +130,8 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
 
     private func startCapture() {
-        guard model.mode == .lens, let screen = window?.screen ?? NSScreen.main else { return }
+        guard let screen = window?.screen ?? NSScreen.main else { return }
         model.captureState = .starting
-        model.displayName = screen.localizedName
         Task { @MainActor in
             do {
                 try await capture.start(screen: screen)
@@ -156,7 +146,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
 
     func windowDidChangeScreen(_ notification: Notification) {
-        guard model.mode == .lens, model.captureState == .running,
+        guard model.captureState == .running,
               window?.screen?.displayID != capture.displayID else { return }
         startCapture()
     }
@@ -173,20 +163,12 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
             .store(in: &cancellables)
 
         // @Published emits on willSet, so hop to the next runloop turn to read new values.
-        model.$followPointer.dropFirst().removeDuplicates()
-            .receive(on: RunLoop.main)
-            .sink { [weak self] in self?.setFollowing($0) }
-            .store(in: &cancellables)
         model.$stripVisible.dropFirst().removeDuplicates()
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.layoutForState()
                 self?.renderThumbnails(force: true)
             }
-            .store(in: &cancellables)
-        model.$mode.dropFirst().removeDuplicates()
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.modeChanged() }
             .store(in: &cancellables)
         model.$resultsVisible.removeDuplicates()
             .receive(on: RunLoop.main)
@@ -197,7 +179,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
             .sink { [weak self] _ in self?.restartThumbTimer() }
             .store(in: &cancellables)
         Publishers.Merge4(model.$age.map { _ in () }, model.$favourites.map { _ in () },
-                          model.$activeID.map { _ in () }, model.$overrides.map { _ in () })
+                          model.$activeID.map { _ in () }, model.$edits.map { _ in () })
             .dropFirst(4)
             .receive(on: RunLoop.main)
             .sink { [weak self] in self?.renderThumbnails(force: true) }
@@ -219,23 +201,15 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
 
     private func updateChrome() {
         guard let window else { return }
-        let lens = model.mode == .lens
-        modeControl.selectedSegment = model.mode.rawValue
-        followButton.state = model.followPointer ? .on : .off
-        followButton.isEnabled = lens
         stripButton.state = model.stripVisible ? .on : .off
-        stripButton.isEnabled = lens
         if let field = searchItem?.searchField, field.stringValue != model.searchText {
             field.stringValue = model.searchText
         }
 
         let name = model.name(model.activeID)
         // D5 has no title: in 440 pt it would push the buttons into the » menu.
-        window.titleVisibility = (lens && !model.stripVisible) ? .hidden : .visible
-        if !lens {
-            window.title = "Whole Screen — On"
-            window.subtitle = "\(name) · \(model.displayName)"
-        } else if model.optionHeld {
+        window.titleVisibility = model.stripVisible ? .visible : .hidden
+        if model.optionHeld {
             window.title = "Original"
             window.subtitle = "Release ⌥ to return to \(name)"
         } else {
@@ -245,29 +219,14 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         if model.resultsVisible { positionResults() }
     }
 
-    private func modeChanged() {
-        if model.mode == .wholeScreen {
-            model.followPointer = false
-            model.leftStrip()
-            model.clearSearch()
-            model.displayName = window?.screen?.localizedName ?? ""
-            let capture = self.capture
-            Task { await capture.stop() }
-            model.captureState = .starting
-        } else {
-            startCaptureIfAllowed()
-        }
-        layoutForState()
-    }
-
-    /// D5 and Whole Screen use a small window; the strip layout gets its old size back.
+    /// D5 uses a small window; the strip layout gets its old size back.
     private func layoutForState() {
         guard let window else { return }
         syncToolbarItems()
-        let compact = model.mode == .wholeScreen || !model.stripVisible
+        let compact = !model.stripVisible
         if compact {
             if !isCompact { expandedFrame = window.frame }
-            let size = model.mode == .wholeScreen ? NSSize(width: 620, height: 230) : NSSize(width: 440, height: 330)
+            let size = NSSize(width: 440, height: 330)
             let f = window.frame
             window.setFrame(NSRect(x: f.minX, y: f.maxY - size.height, width: size.width, height: size.height),
                             display: true, animate: true)
@@ -280,17 +239,15 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         isCompact = compact
     }
 
-    /// D5 shows mode + follow + strip and no search; Whole Screen only the mode switch.
-    /// Otherwise a narrow window pushes the important buttons into the » overflow menu.
+    /// D5 shows only the strip toggle and no search; otherwise a narrow window pushes the
+    /// buttons into the » overflow menu.
     private func syncToolbarItems() {
         guard let toolbar = window?.toolbar else { return }
         let wanted: [NSToolbarItem.Identifier]
-        if model.mode == .wholeScreen {
-            wanted = [.flexibleSpace, .mode]
-        } else if model.stripVisible {
+        if model.stripVisible {
             wanted = toolbarDefaultItemIdentifiers(toolbar)
         } else {
-            wanted = [.flexibleSpace, .mode, .follow, .strip]
+            wanted = [.flexibleSpace, .strip]
         }
         guard toolbar.items.map(\.itemIdentifier) != wanted else { return }
         while !toolbar.items.isEmpty { toolbar.removeItem(at: 0) }
@@ -301,35 +258,6 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
 
     func windowDidResignKey(_ notification: Notification) {
         model.resultsVisible = false
-    }
-
-    // MARK: - Follow Pointer (H3)
-
-    private func setFollowing(_ on: Bool) {
-        followMonitors.forEach(NSEvent.removeMonitor)
-        followMonitors.removeAll()
-        window?.ignoresMouseEvents = false
-        guard on else { return }
-        let events: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .flagsChanged]
-        if let m = NSEvent.addGlobalMonitorForEvents(matching: events, handler: { [weak self] _ in self?.followTick() }) {
-            followMonitors.append(m)
-        }
-        if let m = NSEvent.addLocalMonitorForEvents(matching: events, handler: { [weak self] e in self?.followTick(); return e }) {
-            followMonitors.append(m)
-        }
-        followTick()
-    }
-
-    /// Keep the lens centred on the pointer. Clicks pass through to the app below;
-    /// hold ⌘ to freeze the window and use its controls.
-    private func followTick() {
-        guard let window, let lens = geometry.view?.rectOnScreen else { return }
-        let holdingCommand = NSEvent.modifierFlags.contains(.command)
-        window.ignoresMouseEvents = !holdingCommand
-        guard !holdingCommand else { return }
-        let p = NSEvent.mouseLocation
-        let dx = lens.midX - window.frame.minX, dy = lens.midY - window.frame.minY
-        window.setFrameOrigin(NSPoint(x: (p.x - dx).rounded(), y: (p.y - dy).rounded()))
     }
 
     // MARK: - Thumbnails (H4)
@@ -344,7 +272,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
 
     private func renderThumbnails(force: Bool = false) {
-        guard model.mode == .lens, model.stripVisible, let window, window.isVisible,
+        guard model.stripVisible, let window, window.isVisible,
               force || window.isKeyWindow,
               let frame = capture.latest,
               let lens = geometry.view?.rectOnScreen else { return }
@@ -355,7 +283,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
 
         var ids = [model.activeID]
         for id in model.favourites where !ids.contains(id) { ids.append(id) }
-        let jobs = ids.map { (id: $0, params: model.params(for: $0)) }
+        let jobs = ids.compactMap { id in model.filter(for: id).map { (id: id, filter: $0) } }
         thumbnailer.render(frame: frame, center: center, jobs: jobs) { [weak self] images in
             self?.model.thumbnails.merge(images) { $1 }
         }
@@ -372,7 +300,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
 
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [.mode, .follow, .flexibleSpace, .strip, .search]
+        [.flexibleSpace, .strip, .search]
     }
 
     func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
@@ -382,29 +310,6 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier id: NSToolbarItem.Identifier,
                  willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
         switch id {
-        case .mode:
-            modeControl.segmentCount = 2
-            modeControl.trackingMode = .selectOne
-            modeControl.setLabel("Lens", forSegment: 0)
-            modeControl.setImage(symbol("rectangle.dashed", "Lens"), forSegment: 0)
-            modeControl.setToolTip("Lens (⌃⌘L)", forSegment: 0)
-            modeControl.setLabel("Whole Screen", forSegment: 1)
-            modeControl.setImage(symbol("display", "Whole Screen"), forSegment: 1)
-            modeControl.setToolTip("Whole Screen (⌃⌘W)", forSegment: 1)
-            modeControl.selectedSegment = model.mode.rawValue
-            modeControl.target = self
-            modeControl.action = #selector(modeSegmentChanged(_:))
-            let item = NSToolbarItem(itemIdentifier: id)
-            item.view = modeControl
-            item.label = "Mode"
-            return item
-        case .follow:
-            followButton = toggleButton("cursorarrow", "Follow Pointer", #selector(toggleFollow(_:)))
-            followButton.toolTip = "Follow Pointer (⌃⌘P) — hold ⌘ to use the window while it follows"
-            let item = NSToolbarItem(itemIdentifier: id)
-            item.view = followButton
-            item.label = "Follow Pointer"
-            return item
         case .strip:
             stripButton = toggleButton("rectangle.bottomthird.inset.filled", "Show Strip", #selector(toggleStrip(_:)))
             stripButton.toolTip = "Show or Hide Strip (⌥⌘S)"
@@ -440,26 +345,18 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
 
     // MARK: - Actions
 
-    @objc private func modeSegmentChanged(_ sender: NSSegmentedControl) {
-        model.mode = LensModel.Mode(rawValue: sender.selectedSegment) ?? .lens
+    @objc func showLens(_ sender: Any?) {
+        showWindow(nil)
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
-    @objc func showLens(_ sender: Any?) { model.mode = .lens }
-    @objc func showWholeScreen(_ sender: Any?) { model.mode = .wholeScreen }
-    @objc func toggleFollow(_ sender: Any?) {
-        guard model.mode == .lens else { return }
-        model.followPointer.toggle()
-    }
-    @objc func toggleStrip(_ sender: Any?) {
-        guard model.mode == .lens else { return }
-        model.stripVisible.toggle()
-    }
+    @objc func toggleStrip(_ sender: Any?) { model.stripVisible.toggle() }
     @objc func toggleAdjust(_ sender: Any?) { model.adjustShown.toggle() }
     @objc func showInfo(_ sender: Any?) {
-        guard model.mode == .lens, model.stripVisible else { return }
+        guard model.stripVisible else { return }
         model.showInfo()
     }
     @objc func focusSearch(_ sender: Any?) {
-        guard model.mode == .lens else { return }
         if !model.stripVisible { model.stripVisible = true }   // search lives in the full layout
         DispatchQueue.main.async { [weak self] in
             guard let item = self?.searchItem else { return }
@@ -472,18 +369,9 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
 
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
         switch item.action {
-        case #selector(showLens(_:)): item.state = model.mode == .lens ? .on : .off
-        case #selector(showWholeScreen(_:)): item.state = model.mode == .wholeScreen ? .on : .off
-        case #selector(toggleFollow(_:)):
-            item.state = model.followPointer ? .on : .off
-            return model.mode == .lens
         case #selector(toggleStrip(_:)):
             item.title = model.stripVisible ? "Hide Strip" : "Show Strip"
-            return model.mode == .lens
-        case #selector(showInfo(_:)), #selector(focusSearch(_:)):
-            return model.mode == .lens
         case #selector(toggleStillThumbnails(_:)): item.state = model.stillThumbnails ? .on : .off
-        case #selector(toggleSpikeClickThrough(_:)): item.state = spikeClickThrough ? .on : .off
         case #selector(useFavourite(_:)): item.state = model.favourites[safe: item.tag] == model.activeID ? .on : .off
         default: break
         }
@@ -494,13 +382,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
 
     private func registerHotKeys() {
         hotKeys.unregisterAll()
-        hotKeys.register(kVK_ANSI_L) { [weak self] in self?.model.mode = .lens }
-        hotKeys.register(kVK_ANSI_W) { [weak self] in
-            guard let self else { return }
-            self.model.mode = self.model.mode == .wholeScreen ? .lens : .wholeScreen
-        }
-        hotKeys.register(kVK_ANSI_P) { [weak self] in self?.toggleFollow(nil) }
-        hotKeys.register(kVK_ANSI_T) { [weak self] in self?.toggleSpikeClickThrough(nil) }
+        hotKeys.register(kVK_ANSI_L) { [weak self] in self?.showLens(nil) }
     }
 
     private func installMainMenu() {
@@ -540,9 +422,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
             item("Select All", #selector(NSText.selectAll(_:)), "a"),
         ])
         add("View", [
-            item("Lens", #selector(showLens(_:)), "l", [.control, .command], target: self),
-            item("Whole Screen", #selector(showWholeScreen(_:)), "w", [.control, .command], target: self),
-            item("Follow Pointer", #selector(toggleFollow(_:)), "p", [.control, .command], target: self),
+            item("Show Lens", #selector(showLens(_:)), "l", [.control, .command], target: self),
             .separator(),
             item("Hide Strip", #selector(toggleStrip(_:)), "s", [.command, .option], target: self),
         ])
@@ -555,7 +435,6 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         add("Debug", [
             item("Still Thumbnails (Every 3 s)", #selector(toggleStillThumbnails(_:)), target: self),
             .separator(),
-            item("Click Through (Spike)", #selector(toggleSpikeClickThrough(_:)), "t", [.control, .command], target: self),
             item("Run Sandbox Checks", #selector(runSandboxChecks(_:)), target: self),
         ])
         NSApp.mainMenu = main
@@ -621,7 +500,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
 
     private func showResults() {
-        guard let window, model.mode == .lens else { return }
+        guard let window else { return }
         if resultsPanel == nil {
             let panel = ResultsPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                                      backing: .buffered, defer: false)

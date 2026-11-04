@@ -20,7 +20,7 @@ targets:
     info:
       path: CrappyMonitor/Resources/Info.plist
       properties:
-        LSUIElement: true
+        LSUIElement: false
         NSSupportsAutomaticGraphicsSwitching: true
         NSPrincipalClass: NSApplication
         LSMinimumSystemVersion: "13.0"
@@ -51,7 +51,7 @@ targets:
     info:
       path: Spike/Info.plist
       properties:
-        LSUIElement: true
+        LSUIElement: false
         NSPrincipalClass: NSApplication
         LSMinimumSystemVersion: "13.0"
         CFBundleDisplayName: Crappy Monitor Sandbox Spike

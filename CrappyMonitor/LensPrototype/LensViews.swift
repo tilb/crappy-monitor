@@ -1,8 +1,6 @@
 import AppKit
 import SwiftUI
 
-// LENS PROTOTYPE — throwaway.
-
 /// Lets the window controller find the lens view (for its on-screen rect).
 final class LensGeometry {
     weak var view: LensMTKView?
@@ -14,17 +12,13 @@ struct LensRootView: View {
     let geometry: LensGeometry
 
     var body: some View {
-        if model.mode == .wholeScreen {
-            WholeScreenView(model: model)
-        } else {
-            VStack(spacing: 0) {
-                LensArea(model: model, capture: capture, geometry: geometry)
-                Divider()
-                if model.stripVisible {
-                    StripView(model: model)
-                } else {
-                    CollapsedFooter(model: model)
-                }
+        VStack(spacing: 0) {
+            LensArea(model: model, capture: capture, geometry: geometry)
+            Divider()
+            if model.stripVisible {
+                StripView(model: model)
+            } else {
+                CollapsedFooter(model: model)
             }
         }
     }
@@ -53,7 +47,7 @@ struct LensArea: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .starting, .running:
                 LensSurface(model: model, capture: capture, geometry: geometry)
-                    .accessibilityLabel("Lens: the screen under this window as \(model.name(model.previewID ?? model.activeID))")
+                    .accessibilityLabel("Lens through \(model.name(model.previewID ?? model.activeID)), \(model.age.label)")
             }
 
             if model.captureState == .running {
@@ -147,9 +141,6 @@ struct PermissionView: View {
                 }
                 .keyboardShortcut(.defaultAction)
             }
-            Text("Whole Screen works without this permission.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
         .padding(showIcon ? 24 : 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -189,57 +180,6 @@ struct CollapsedFooter: View {
     }
 }
 
-// MARK: - Whole Screen controller
-
-struct WholeScreenView: View {
-    @ObservedObject var model: LensModel
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 16) {
-                Image(systemName: "display")
-                    .font(.system(size: 34))
-                    .frame(width: 56)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Your whole screen is degraded").font(.title3.weight(.semibold))
-                    Text("Every app, including this window. Hold ⌥ to see the original.")
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 12)
-                Button { model.mode = .lens } label: {
-                    HStack(spacing: 8) {
-                        Text("Stop")
-                        Text("⌃⌘W").foregroundStyle(.secondary)
-                    }
-                }
-                .controlSize(.large)
-            }
-            .padding(20)
-            .frame(maxHeight: .infinity)
-
-            Divider()
-
-            HStack(spacing: 12) {
-                Picker("Monitor", selection: Binding(get: { model.activeID }, set: { model.use($0) })) {
-                    ForEach(model.monitors) { Text($0.displayName).tag($0.id) }
-                }
-                .labelsHidden()
-                .fixedSize()
-                Picker("Age", selection: $model.age) {
-                    ForEach(MonitorAge.allCases) { Text($0.label).tag($0) }
-                }
-                .fixedSize()
-                if model.isEdited { Text("Edited").foregroundStyle(.secondary) }
-                Spacer()
-                AdjustButton(model: model, compact: true)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-        }
-    }
-}
-
 // MARK: - Adjust
 
 struct AdjustButton: View {
@@ -268,29 +208,32 @@ struct AdjustView: View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Adjust \(model.name(model.activeID))").font(.headline)
-                Text("\(model.age.phrase). Changes apply to this monitor only.")
+                Text("Changes apply to this monitor only.")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            FilterSliderView(label: "Brightness", range: LensParams.brightnessRange,
-                             value: binding(\.brightness, \.brightness), format: "%.2f")
-            FilterSliderView(label: "Contrast", range: LensParams.contrastRange,
-                             value: binding(\.contrast, \.contrast), format: "%.2f")
-            FilterSliderView(label: "Colour Temp (K)", range: LensParams.colorTempRange,
-                             value: binding(\.colorTemp, \.colorTemp), format: "%.0f K")
-            FilterSliderView(label: "Gamma", range: LensParams.gammaRange,
-                             value: binding(\.gamma, \.gamma), format: "%.2f")
-            FilterSliderView(label: "Black Level", range: LensParams.blackLevelRange,
-                             value: binding(\.blackLevel, \.blackLevel), format: "%.3f")
+            // Age here too, so it can be changed in the collapsed lens (design review 7.2A).
+            Picker("Age", selection: $model.age) {
+                ForEach(MonitorAge.allCases) { Text($0.label).tag($0) }
+            }
+            FilterSliderView(label: "Backlight", range: MonitorFilter.Edits.backlightRange,
+                             value: edit(\.backlight, default: 1), format: "%.0f %%", scale: 100)
+            FilterSliderView(label: "Panel contrast", range: MonitorFilter.Edits.contrastRange,
+                             value: edit(\.contrastRatio, default: model.active?.contrastRatio ?? 1000),
+                             format: "%.0f:1")
+            FilterSliderView(label: "White point", range: MonitorFilter.Edits.colorTemperatureRange,
+                             value: edit(\.colorTemperature, default: model.activeFilter?.whiteTemperature ?? 6500),
+                             format: "%.0f K")
+            FilterSliderView(label: "Gamma", range: MonitorFilter.Edits.gammaRange,
+                             value: edit(\.gamma, default: MonitorFilter.Constants.panelGamma), format: "%.2f")
+            FilterSliderView(label: "Office light", range: MonitorFilter.Edits.officeLightRange,
+                             value: edit(\.officeLight, default: 1), format: "%.1f×")
             Toggle("Non-retina pixels", isOn: Binding(
-                get: { model.activeParams.nonRetina },
-                set: { model.overrides.nonRetina = $0 }))
-                .disabled(model.mode == .wholeScreen)
-                .help(model.mode == .wholeScreen
-                      ? "In Whole Screen, use the control panel's display-mode switch"
-                      : "Shows the lens at 1× with hard pixel edges")
+                get: { model.activeFilter?.nonRetina ?? true },
+                set: { model.edits.nonRetina = $0 }))
+                .help("Shows the lens at the monitor's own pixel size")
             HStack {
                 Spacer()
-                Button("Reset") { model.overrides = LensOverrides() }
+                Button("Reset") { model.edits = MonitorFilter.Edits() }
                     .disabled(!model.isEdited)
             }
         }
@@ -298,9 +241,8 @@ struct AdjustView: View {
         .frame(width: 300)
     }
 
-    private func binding(_ value: KeyPath<LensParams, Double>,
-                         _ override: WritableKeyPath<LensOverrides, Double?>) -> Binding<Double> {
-        Binding(get: { model.activeParams[keyPath: value] },
-                set: { model.overrides[keyPath: override] = $0 })
+    private func edit(_ key: WritableKeyPath<MonitorFilter.Edits, Double?>, default value: Double) -> Binding<Double> {
+        Binding(get: { model.edits[keyPath: key] ?? value },
+                set: { model.edits[keyPath: key] = $0 })
     }
 }

@@ -1,8 +1,6 @@
 import AppKit
 import SwiftUI
 
-// LENS PROTOTYPE — throwaway.
-
 // MARK: - D1 strip
 
 struct StripView: View {
@@ -214,21 +212,29 @@ struct MonitorInfoView: View {
             }
 
             Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 5) {
-                row("Panel type", p?.panelType)
-                row("Resolution", p?.resolution?.replacingOccurrences(of: "x", with: " × "))
-                row("Size", size(p))
-                row("Contrast", p?.contrastRatio.map { "\($0):1" })
-                row("Brightness", p?.maxBrightness.map { "\($0) cd/m²" })
-                row("Colour range", p?.gamutSRGB.map { "\($0)% sRGB" })
-                row("Released", p?.year.map(String.init))
+                row("Panel type", p.map {
+                    "\($0.panelType.rawValue), \($0.isEstimated("backlight") ? "≈ " : "")\($0.backlight.rawValue) backlight"
+                })
+                row("Resolution", p.map { "\($0.resolution[0]) × \($0.resolution[1])" })
+                row("Size", p.map { String(format: "%.1f″ · %.0f ppi", $0.sizeInches, $0.pixelsPerInch) })
+                row("Contrast", p.map { String(format: "%.0f:1", $0.contrastRatio) })
+                row("Brightness", p.map { String(format: "%.0f cd/m²", $0.maxBrightness) })
+                row("Colour range", p?.gamutSpec)
+                row("sRGB coverage", p.map { String(format: "%.0f %% (from EDID)", $0.sRGBCoverage * 100) })
+                row("Released", p?.released.map(String.init), estimated: p?.isEstimated("released") ?? false)
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .textBackgroundColor)))
             .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.1)))
 
+            if p.map({ !$0.estimated.isEmpty }) ?? false {
+                Text("≈ estimated from the datasheet or similar models")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             Label {
-                Text("**Based on specifications.** Built from the datasheet and the monitor’s own display data (EDID). The age you pick adds wear on top. Real monitors also vary with their settings and the light in the room.")
+                Text("**Based on specifications.** Built from the datasheet and the monitor’s own display data (EDID). The age you pick adds wear on top; brightness loss is shown as-is, though people using this monitor get used to it. Real monitors also vary with their settings and the light in the room.")
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
                 Image(systemName: "info.circle")
@@ -251,17 +257,17 @@ struct MonitorInfoView: View {
         .frame(width: 360)
     }
 
-    private func row(_ label: String, _ value: String?) -> some View {
+    /// "—" for a missing value (VoiceOver: "Unknown"), "≈" before an estimated one (design 2.3A).
+    private func row(_ label: String, _ value: String?, estimated: Bool = false) -> some View {
         GridRow {
             Text(label).foregroundStyle(.secondary)
-            Text(value ?? "—")
+            if let value {
+                Text(estimated ? "≈ \(value)" : value)
+                    .accessibilityLabel(estimated ? "about \(value)" : value)
+            } else {
+                Text("—").accessibilityLabel("Unknown")
+            }
         }
-    }
-
-    private func size(_ p: DegradationPreset?) -> String? {
-        guard let inches = p?.sizeInches else { return nil }
-        let s = String(format: "%.1f″", inches)
-        return p?.dpi.map { "\(s) · \($0) ppi" } ?? s
     }
 }
 
@@ -320,7 +326,7 @@ struct SearchResultsView: View {
             .accessibilityAddTraits(.isHeader)
     }
 
-    private func row(_ p: DegradationPreset, index: Int, favourite: Bool) -> some View {
+    private func row(_ p: MonitorProfile, index: Int, favourite: Bool) -> some View {
         let selected = index == model.searchSelection
         return HStack {
             highlighted(p.displayName)

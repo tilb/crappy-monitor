@@ -1,51 +1,39 @@
 import AppKit
-import Combine
 import Foundation
-
-// LENS PROTOTYPE — throwaway.
 
 /// All state of the lens window. Main thread only.
 final class LensModel: ObservableObject {
-    enum Mode: Int { case lens = 0, wholeScreen = 1 }
     enum CaptureState: Equatable { case starting, running, needsPermission, failed(String) }
 
-    let presetsStore: PresetsStore
-    let filterSettings: FilterSettings
+    let library: MonitorLibrary
     private let defaults: UserDefaults
-    private var cancellables = Set<AnyCancellable>()
 
     static let repoURL = "https://github.com/tilb/crappy-monitor"
 
     // MARK: Published state
 
-    @Published var mode: Mode = .lens {
-        didSet { if mode != oldValue { applyGammaForMode() } }
-    }
     @Published var activeID: String {
         didSet {
             guard activeID != oldValue else { return }
-            overrides = LensOverrides()
+            edits = MonitorFilter.Edits()
             defaults.set(activeID, forKey: "lens.activeID")
-            pushWholeScreen()
         }
     }
     @Published var favourites: [String] {
         didSet { defaults.set(favourites, forKey: "lens.favourites") }
     }
     @Published var age: MonitorAge {
-        didSet { defaults.set(age.rawValue, forKey: "lens.age"); pushWholeScreen() }
+        didSet { defaults.set(age.rawValue, forKey: "lens.age") }
     }
-    @Published var overrides = LensOverrides() {
-        didSet { pushWholeScreen() }
-    }
+    /// Adjust edits for the active monitor; reset when another monitor becomes active.
+    @Published var edits = MonitorFilter.Edits()
     @Published var stillThumbnails: Bool {
         didSet { defaults.set(stillThumbnails, forKey: "lens.stillThumbnails") }
     }
 
-    @Published var previewID: String?
-    @Published var followPointer = false   // H3: off by default (decided 2026-11-01)
+    @Published var previewID: String?      // only used by the debug snapshot tour
     @Published var stripVisible = true
-    @Published var optionHeld = false
+    @Published var optionHeld = false      // hold ⌥ to compare; set by the window controller
 
     @Published var searchText = ""
     @Published var resultsVisible = false
@@ -59,51 +47,43 @@ final class LensModel: ObservableObject {
 
     @Published var captureState: CaptureState = .starting
     @Published var thumbnails: [String: NSImage] = [:]
-    @Published var displayName = ""        // display the window is on (Whole Screen subtitle)
 
     /// Set by the window controller; the "Try Again" button calls it.
     var retryCapture: (() -> Void)?
 
-    init(presetsStore: PresetsStore, filterSettings: FilterSettings, defaults: UserDefaults = .standard) {
-        self.presetsStore = presetsStore
-        self.filterSettings = filterSettings
+    init(library: MonitorLibrary, defaults: UserDefaults = .standard) {
+        self.library = library
         self.defaults = defaults
 
-        let monitorIDs = presetsStore.presets.filter { $0.panelType != nil }.map(\.id)
+        let ids = library.monitors.map(\.id)
         let savedActive = defaults.string(forKey: "lens.activeID")
-        activeID = savedActive.flatMap { monitorIDs.contains($0) ? $0 : nil }
-            ?? (monitorIDs.contains("dell-p2419h") ? "dell-p2419h" : monitorIDs.first ?? "")
+        activeID = savedActive.flatMap { ids.contains($0) ? $0 : nil }
+            ?? library.firstRunDefault?.id ?? ""
         let savedFavs = defaults.stringArray(forKey: "lens.favourites")
-            ?? ["hp-e24-g4", "philips-241v8", "lenovo-thinkvision-t23i", "samsung-s24f350"]
-        favourites = savedFavs.filter { monitorIDs.contains($0) }
+            ?? Array(ids.dropFirst().prefix(4))     // research ranks 2–5
+        favourites = savedFavs.filter { ids.contains($0) }
         age = MonitorAge(rawValue: defaults.object(forKey: "lens.age") as? Int ?? 6) ?? .six
         stillThumbnails = defaults.bool(forKey: "lens.stillThumbnails")
-
-        filterSettings.$isABActive
-            .receive(on: RunLoop.main)
-            .sink { [weak self] in self?.optionHeld = $0 }
-            .store(in: &cancellables)
     }
 
     // MARK: Monitors
 
-    var monitors: [DegradationPreset] { presetsStore.presets.filter { $0.panelType != nil } }
-    func monitor(_ id: String?) -> DegradationPreset? { monitors.first { $0.id == id } }
-    var active: DegradationPreset? { monitor(activeID) }
+    var monitors: [MonitorProfile] { library.monitors }
+    func monitor(_ id: String?) -> MonitorProfile? { library.monitor(id) }
+    var active: MonitorProfile? { monitor(activeID) }
     func name(_ id: String?) -> String { monitor(id)?.displayName ?? "—" }
 
-    var isEdited: Bool { !overrides.isEmpty }
+    var isEdited: Bool { !edits.isEmpty }
 
-    /// Spec profile + age, plus Adjust edits for the active monitor only.
-    func params(for id: String) -> LensParams {
-        guard let preset = monitor(id) else { return LensParams() }
-        let base = LensParams(preset: preset).aged(age)
-        return id == activeID ? overrides.applied(to: base) : base
+    /// Profile + age, plus Adjust edits for the active monitor only.
+    func filter(for id: String) -> MonitorFilter? {
+        guard let p = monitor(id) else { return nil }
+        return MonitorFilter(profile: p, age: age, edits: id == activeID ? edits : MonitorFilter.Edits())
     }
-    var activeParams: LensParams { params(for: activeID) }
+    var activeFilter: MonitorFilter? { filter(for: activeID) }
 
-    /// What the big lens shows right now: hovered preview wins over the active monitor.
-    var lensParams: LensParams { params(for: previewID ?? activeID) }
+    /// What the big lens shows right now.
+    var lensFilter: MonitorFilter? { filter(for: previewID ?? activeID) }
     var showsOriginal: Bool { optionHeld }
 
     func use(_ id: String) {
@@ -127,14 +107,9 @@ final class LensModel: ObservableObject {
         use(favourites[index])
     }
 
-    // MARK: Hover (D2)
-    // Hover-to-preview was dropped after the first demo (2026-11-02, Ernest:
-    // "not intuitive"). Hover now only shows the tile background and the ⓘ
-    // button; the lens changes on click. `previewID` stays for the snapshot tour.
+    // MARK: Hover (no preview: the lens changes on click only, decided 2026-11-02)
 
-    func hoverBegan(_ id: String, key: String) {
-        hoveredKey = key
-    }
+    func hoverBegan(_ id: String, key: String) { hoveredKey = key }
 
     func hoverEnded(key: String) {
         if hoveredKey == key { hoveredKey = nil }
@@ -145,7 +120,6 @@ final class LensModel: ObservableObject {
         previewID = nil
     }
 
-
     // MARK: Info (D4)
 
     func showInfo() {
@@ -155,17 +129,17 @@ final class LensModel: ObservableObject {
     // MARK: Search (D3)
 
     struct SearchResults {
-        var favourites: [DegradationPreset]
-        var others: [DegradationPreset]
+        var favourites: [MonitorProfile]
+        var others: [MonitorProfile]
         var hiddenCount: Int
         var flat: [String] { favourites.map(\.id) + others.map(\.id) }
     }
 
     var query: String { searchText.trimmingCharacters(in: .whitespaces).lowercased() }
 
-    private func matches(_ p: DegradationPreset) -> Bool {
+    private func matches(_ p: MonitorProfile) -> Bool {
         let q = query
-        return q.isEmpty || p.displayName.lowercased().contains(q) || p.name.lowercased().contains(q)
+        return q.isEmpty || p.displayName.lowercased().contains(q)
     }
 
     func searchResults() -> SearchResults {
@@ -208,27 +182,6 @@ final class LensModel: ObservableObject {
         browseAll = true
         searchSelection = 0
         resultsVisible = true
-    }
-
-    // MARK: Whole Screen (existing gamma pipeline)
-
-    func applyGammaForMode() {
-        switch mode {
-        case .lens:
-            // The lens captures the clean framebuffer; display gamma must be off
-            // or the user sees the screen degraded twice.
-            filterSettings.isEnabled = false
-            previewID = nil
-        case .wholeScreen:
-            pushWholeScreen()
-        }
-    }
-
-    private func pushWholeScreen() {
-        guard mode == .wholeScreen, let preset = active else { return }
-        preset.apply(to: filterSettings)          // sets activePresetID for the control panel
-        activeParams.write(to: filterSettings)    // age + Adjust edits on top
-        filterSettings.isEnabled = true
     }
 
     // MARK: Links

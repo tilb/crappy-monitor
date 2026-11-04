@@ -903,7 +903,7 @@ Effort assumption: human-team vs CC ratios from the skill defaults (features ~30
   - Surfaced by: PRD §9 (prototype permission incident)
   - Files: project.yml
   - Verify: debug and release builds appear as two entries under Screen Recording
-- [ ] **T3 (P1, human: ~2 days / CC: ~1h)** — filter — MonitorFilter with spec formula, wear model v2, gamut matrix; move Kang + LUT invariant tests unchanged
+- [x] **T3 (P1, human: ~2 days / CC: ~1h)** — filter — MonitorFilter with spec formula, wear model v2, gamut matrix; move Kang + LUT invariant tests unchanged
   - Surfaced by: PRD §7, Vraag 4, Vraag 12 (R8)
   - Files: CrappyMonitor/Filter/*, CrappyMonitorTests/MonitorFilterTests.swift
   - Verify: xcodebuild test; wear-direction and regression tests green
@@ -923,7 +923,7 @@ Effort assumption: human-team vs CC ratios from the skill defaults (features ~30
   - Surfaced by: Section 4 R9 (Vraag 13)
   - Files: CrappyMonitor/Render/*, CrappyMonitor/Window/*
   - Verify: Instruments energy and frame-drop check before beta
-- [ ] **T8 (P2, human: ~4h / CC: ~15min)** — cleanup — Apply the §6.1 code plan; retire the listed tests
+- [x] **T8 (P2, human: ~4h / CC: ~15min)** — cleanup — Apply the §6.1 code plan; retire the listed tests
   - Surfaced by: Section 2 R7 (Vraag 11), Section 3 tests to retire
   - Files: CrappyMonitor/App/*, Display/*, ControlPanel/*, CrappyMonitorTests/*
   - Verify: no `CGSetDisplayTransferByTable`, `NSStatusBar` or `CGConfigureDisplayWithDisplayMode` left in the target
