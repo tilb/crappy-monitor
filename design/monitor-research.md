@@ -1,159 +1,198 @@
-# Monitor research: the ten most-used monitors (2011–2026)
+# Monitor research: the ten monitors large organisations use most (2011–2026)
 
-_Status: draft for Ernest's review · Date: 2026-11-03 · For: PRD §8.1 (task T9)_
+_Status: draft for Ernest's review · Date: 2026-11-04 · For: PRD §8.1 (task T9)_
 
-This is the input for the 2.0 monitor library. Nothing here is in `Presets.json` yet; the
-PRD says profiles ship only after review.
+The 2.0 library is for designers who design for people at work in healthcare, transport,
+call centres, government and other large organisations. So the question is not "which
+monitors sell most" but **"which monitors sit on the desks of large organisations"**,
+for Europe and the US. Nothing here is in `Presets.json` yet; the PRD says profiles ship
+only after review.
 
-## 1. How "most used" was measured
+## 1. Method
 
-There is no public per-model sales data. Market reports (IDC via Statista and TAdviser)
-give vendor shares only: Dell leads PC monitor shipments with roughly 20–23 %, followed by
-TPV (AOC and Philips), HP, Lenovo, Samsung and LG.
+**Candidates.** About 100 models from the business lines that organisations buy in bulk,
+2011–2026, 21.5–24″: Dell P, E and U series; HP EliteDisplay, E and P series and LA;
+Lenovo ThinkVision T, E and LT; Fujitsu B, E and P; iiyama ProLite; EIZO FlexScan; NEC
+EA; Philips B-line (no Philips B-line model was found in the data).
 
-For per-model prevalence this research uses **linux-hardware.org**, where real computers
-report their hardware with `hw-probe`. For each candidate model it counts the computers
-that reported that monitor, summed over all EDID product codes of the model. Codes come
-from the open **linuxhw/EDID** index (`DigitalDisplay.md`, `AnalogDisplay.md`, CC-BY-4.0).
+**Prevalence.** For each model, the number of computers that reported it on
+**linux-hardware.org** (hw-probe), summed over all of the model's EDID product codes from
+the open **linuxhw/EDID** index (CC-BY-4.0). Fetched 2026-11-03/04.
 
-Counted: about 60 office and consumer models of 21–27 inches, 2011–2026, chosen from the
-major vendors' mainstream lines and from the most frequent models in the EDID index.
+**Organisation signal.** Each model page lists a sample of the computers the monitor was
+attached to (about 10–50 per model). The share of business machines in that sample
+(Dell OptiPlex/Latitude/Precision/Vostro, HP EliteBook/EliteDesk/ProBook/ProDesk/Z,
+Lenovo ThinkPad/ThinkCentre/ThinkStation, Fujitsu Esprimo/Lifebook/Celsius, Acer
+TravelMate/Veriton, ASUS ExpertBook) is the organisation signal. **Baseline:** the
+consumer monitors from the first round (Samsung C24F390, Samsung S24F350, Philips 243V7,
+AOC 2270W) sat on a business machine in 2 of 51 samples (4 %). Business-line monitors sat
+on one in 10–57 % of samples.
 
-**Biases, stated plainly:**
-- Only Linux users who run hw-probe are counted. Cheap consumer monitors (Samsung,
-  Philips, AOC) are probably over-represented; corporate fleets (HP and Lenovo office
-  monitors behind managed Windows PCs) are under-represented. HP E24 G4 (40) and Lenovo
-  T24i-10 (43) are surely far more common in real offices than these counts suggest.
-- Some vendors reuse one EDID code across several models (AOC `AOC2402`: 24B2, 24G2 and
-  Q24P2; LG `GSM5B55`: 21.5″ to 31.5″ and 4K). Those codes cannot be attributed to a
-  model and were left out of the ranking.
-- Counts change between crawls (Dell P2419H code `DELD0DA`: 280 → 369 → 373 across
-  snapshots). Treat them as relative, not absolute.
+**Ranking measure.** Estimated business-attached units = computers × business share.
 
-## 2. Ranking (computers on linux-hardware.org, fetched 2026-11-02/03)
+**Supporting evidence (qualitative).** Dell leads PC monitor shipments with about
+20–23 %, followed by TPV (AOC/Philips), HP and Lenovo (IDC via Statista and TAdviser).
+US government surplus is auctioned in lots of Dell P2417Hb monitors (GSA Auctions,
+2026). Insight lists the Dell P2419H and Lenovo T24i among its top-selling refurbished
+monitors; refurbishers sell the T24i in A/B/C grades (PCLiquidations, refurbed). No public
+tender awards naming models were found; those sit in closed procurement portals.
 
-| Monitor | Year* | Panel | Computers |
+**Limits, stated plainly.**
+- linux-hardware.org only sees computers whose users run hw-probe; managed corporate
+  fleets rarely do, so absolute numbers are small and favour IT staff and developers.
+  The organisation share corrects for this only partly.
+- Samples are small (10–50 computers per model); treat the shares as rough.
+- New models (2021+) are under-represented because the data lags years behind
+  purchases: the Dell P2422H (2021) already scores 44, the P2425H (2024) has no data.
+- Some vendors reuse one EDID code across models; such codes were left out.
+
+## 2. Ranking (business-line models, top 25)
+
+| Monitor | Computers | Business share (sample) | Est. business-attached |
 |---|---|---|---|
-| Samsung C24F390 | 2015 | VA (SVA), curved | 934 |
-| Philips 243V7 | 2017 | IPS | 898 |
-| Samsung S24F350 | 2015 | PLS | 892 |
-| Dell P2419H | 2018 | IPS | 683 |
-| Dell U2412M | 2011 | e-IPS | 618 |
-| Dell U2415 | 2014 | AH-IPS | 546 |
-| Philips 223V5 | 2011–2014 | TN | 484 |
-| Samsung S22F350 | 2016 | TN | 364 |
-| Dell U2414H | 2013 | IPS | 343 |
-| Samsung S24D300 | 2013 | TN | 326 |
-| Philips 273V7 | 2017 | IPS | 287 |
-| AOC 2270W (e2270Sw / E2270SWN) | 2013 | TN | 286 |
-| Acer K222HQL | 2014 | TN | 239 |
-| HP 24f | 2018 | IPS | 238 |
-| Dell P2417H · P2422H · P2219H | 2016–2021 | IPS | 218 · 216 · 211 |
-| LG 22MP55 | 2013 | IPS | 207 |
-| AOC 24B2 family (shared code) | 2019– | IPS | 709, not attributable |
+| Dell P2419H | 683 | 33 % (39) | 228 |
+| Dell U2412M | 1034 | 18 % (44) | 188 |
+| Dell P2417H | 365 | 24 % (33) | 88 |
+| Dell U2414H | 396 | 16 % (38) | 63 |
+| Dell U2415 | 546 | 11 % (53) | 62 |
+| Dell P2317H | 252 | 23 % (30) | 59 |
+| HP EliteDisplay E243 | 146 | 38 % (29) | 55 |
+| Lenovo ThinkVision T24i-10 | 97 | 57 % (23) | 55 |
+| Dell P2319H | 183 | 29 % (38) | 53 |
+| HP LA2205wg | 212 | 24 % (25) | 51 |
+| Dell P2414H | 339 | 15 % (27) | 50 |
+| Dell U2419H | 118 | 41 % (22) | 48 |
+| EIZO FlexScan EV2450 | 149 | 30 % (46) | 45 |
+| Dell P2422H | 255 | 17 % (46) | 44 |
+| Lenovo ThinkVision LT2252p | 171 | 25 % (12) | 43 |
+| Dell P2219H | 212 | 20 % (30) | 42 |
+| HP LA2405wg | 126 | 30 % (27) | 37 |
+| HP EliteDisplay E231 | 254 | 14 % (44) | 35 |
+| HP EliteDisplay E232 | 166 | 21 % (29) | 34 |
+| Dell P2212H | 116 | 29 % (17) | 34 |
+| Dell P2214H | 298 | 11 % (35) | 34 |
+| Dell P2217H | 223 | 15 % (27) | 33 |
+| iiyama ProLite XU2492HSU | 133 | 21 % (19) | 28 |
+| NEC EA244WMi | 110 | 22 % (46) | 24 |
+| HP E24 G4 | 41 | 33 % (27) | 14 |
 
-\* Earliest manufacture year seen in the EDID data, a check on the release year.
+## 3. The ten (chosen by Ernest, 2026-11-04)
 
-Incomplete: AOC 2470W and one Acer B246HL code were rate-limited (HTTP 429) and are not
-counted.
+Rules: highest estimated business-attached units, at most three per brand, at least one
+European fleet brand, spread over the years. In rank order (the first is the first-run
+default, PRD §8.2):
 
-## 3. The ten (chosen by Ernest, 2026-11-03)
+1. Dell P2419H · 2. Dell U2412M · 3. Dell P2417H · 4. HP EliteDisplay E243 ·
+5. Lenovo ThinkVision T24i-10 · 6. HP LA2205wg · 7. EIZO FlexScan EV2450 ·
+8. Lenovo ThinkVision LT2252p · 9. iiyama ProLite XU2492HSU · 10. HP E24 G4
 
-Rule: highest counts, at most three per brand, at least one TN, IPS and VA panel. The AOC
-24B2XH was replaced by the AOC 2270W because its count belonged to a shared code.
-
-Dell P2419H · Dell U2412M · Dell U2415 · Samsung C24F390 · Samsung S24F350 · Samsung
-S22F350 · Philips 243V7 · Philips 223V5 · AOC 2270W · HP 24f
+**No VA panel.** Organisations bought IPS and, earlier, TN; VA barely appears in the
+fleet data (best candidate HP P222va: 32 computers). That is a finding, not a gap.
 
 ## 4. Specifications
 
-Rank order below follows the ranking; per PRD §8.2 the first entry would become the
-first-run default. Sources are listed in §6 by letter. `≈` marks an estimated or derived
-value, "—" a value not found.
+Sources are listed in §6 by letter. `≈` marks an estimated or derived value, "—" a
+value not found. Gamut percentages use the standard the source names (Dell and Lenovo:
+CIE 1931 NTSC).
 
 | # | Monitor | Released | Panel | Backlight | Size | Resolution | ppi | Brightness | Static contrast | Gamut (spec) |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | Samsung C24F390 (C24F390FH) | 2015 [F] | SVA, 1800R curve [A] | W-LED [A] | 23.5″ [A] | 1920 × 1080 | ≈ 94 | 250 cd/m² [A] | 3000:1 [A] | 72 % NTSC [A] |
-| 2 | Philips 243V7 (243V7QDSB/QSB) | 2017 [F] | IPS [B] | W-LED [B] | 23.8″ [B] | 1920 × 1080 | 92.6 (0.275 mm pitch) [B] | 250 cd/m² [B] | 1000:1 [B] | — (datasheet lists "sRGB" mode only) [B] |
-| 3 | Samsung S24F350 (S24F350FH) | 2015 [F] | PLS [C] | W-LED [A] | 23.5″ [A] | 1920 × 1080 | ≈ 94 | 250 cd/m² [C] | 1000:1 (700:1 min) [C] | 72 % NTSC 1976 [C] |
-| 4 | Dell P2419H | 2018 [F] | IPS [D] | W-LED [A] | 23.8″ [D] | 1920 × 1080 | 92.6 | 250 cd/m² [D] | 1000:1 [D] | 72 % CIE 1931 / 82 % CIE 1976 [D] |
-| 5 | Dell U2412M | 2011 [E] | e-IPS, LG.Display LM240WU8-SLA2 [E] | W-LED [E] | 24″ [E] | 1920 × 1200 | 94.3 | 300 cd/m² [E] | 1000:1 (measured 947–1139:1) [E] | 71 % NTSC, 95.8 % sRGB [E] |
-| 6 | Dell U2415 | 2014 [G] | AH-IPS [A] | W-LED [A] | 24.1″ [A] | 1920 × 1200 | 94 | 300 cd/m² [G] | 1000:1 (measured 1015:1) [G] | 99 % sRGB; 76 % CIE 1931 [G] |
-| 7 | Philips 223V5 (223V5LSB) | ≈ 2013 [F] | TN [A] | W-LED [A] | 21.5″ [H] | 1920 × 1080 | 102.5 | 250 cd/m² [H] | 1000:1 [H] | — ("sRGB" mode only) [H] |
-| 8 | Samsung S22F350 (S22F350FH) | 2016 [F] | TN [C] | W-LED [A] | 21.5″ [C] | 1920 × 1080 | 102.5 | 200 cd/m² [C] | 1000:1 [C] | 72 % NTSC 1976 [C] |
-| 9 | AOC 2270W (≈ e2270Sw / E2270SWN) | ≈ 2013 [F] | TN [I] | W-LED [I] | 21.5″ [I] | 1920 × 1080 | 102.5 (0.248 mm pitch) [I] | 200 cd/m² [I] | 700:1 [I] | — [I] |
-| 10 | HP 24f | 2018 [A] | IPS [A] | W-LED [A] | 23.8″ [A] | 1920 × 1080 | 92.6 | 300 cd/m² [A] | 1000:1 [A] | 72 % NTSC [A] |
+| 1 | Dell P2419H | 2018 [F] | IPS [D] | W-LED [D] | 23.8″ | 1920 × 1080 | 92.6 | 250 cd/m² [D] | 1000:1 [D] | 72 % NTSC (CIE 1931) [D] |
+| 2 | Dell U2412M | 2011 [E] | e-IPS, LG.Display LM240WU8-SLA2 [E] | W-LED [E] | 24″ | 1920 × 1200 (16:10) | 94.3 | 300 cd/m² [E] | 1000:1 (measured 947–1139:1) [E] | 71 % NTSC, 95.8 % sRGB [E] |
+| 3 | Dell P2417H | 2016 [F] | IPS [K] | W-LED [K] | 23.8″ | 1920 × 1080 | 92.6 | 250 cd/m² [K] | 1000:1 [K] | 72 % NTSC (CIE 1931), 82 % (CIE 1976) [K] |
+| 4 | HP EliteDisplay E243 | ≈ 2016 [F] | IPS [L] | W-LED [L] | 23.8″ | 1920 × 1080 | 92.6 | 250 cd/m² [L] | 1000:1 [L] | — (72 % NTSC is the E243m's figure) [L] |
+| 5 | Lenovo ThinkVision T24i-10 | 2017 [F] | IPS [M] | W-LED [M] | 23.8″ | 1920 × 1080 | 92.6 | 250 cd/m² [M] | 1000:1 [M] | 72 % NTSC (CIE 1931) [M] |
+| 6 | HP LA2205wg | ≈ 2009 [F] | TN [N] | ≈ CCFL [N] | 22″ | 1680 × 1050 (16:10) | 90.1 [O] | 250 cd/m² [N] | 1000:1 [N] | — |
+| 7 | EIZO FlexScan EV2450 | 2014 [P] | AH-IPS, LG.Display LM238WF2-SSC1, 6-bit + FRC [P] | W-LED [P] | 23.8″ | 1920 × 1080 | 92.6 | 250 cd/m² (measured 250.4) [P] | 1000:1 (measured 1071:1) [P] | ≈ sRGB, ~72 % NTSC [P] |
+| 8 | Lenovo ThinkVision LT2252p | 2011 [Q] | TN [Q] | W-LED [Q] | 22″ | 1680 × 1050 (16:10) | 90.1 (computed; PSREF rounds the pitch to 0.28 mm) [Q] | 250 cd/m² [Q] | 1000:1 [Q] | 72 % [Q] |
+| 9 | iiyama ProLite XU2492HSU | 2016 [F] | AH-IPS [R] | W-LED [R] | 23.8″ | 1920 × 1080 | 92.6 | 250 cd/m² [R] | 1000:1 [R] | 99 % sRGB, 72 % NTSC [R] |
+| 10 | HP E24 G4 | 2020 [S] | IPS [S] | W-LED [S] | 23.8″ | 1920 × 1080 | 92.6 | 250 cd/m² [S] | 1000:1 [S] | 72 % NTSC [S] |
 
-All ten have **W-LED backlights**; none is CCFL. The CCFL branch of the wear model (PRD
-§7.3) is not used by this first library.
+The HP LA2205wg is the only monitor with a (probable) CCFL backlight: HP's QuickSpecs
+give a backlight "lamp life to half brightness" of 50,000 hours, which is CCFL wording,
+and a retailer lists CCFL; no HP document says CCFL in so many words. It is also older
+than the 15-year window (EDID manufacture dates 2009–2012), but it was still on desks
+well into the window.
 
 ## 5. Colour primaries (EDID, source [J])
 
-Values as programmed by the manufacturer into each monitor (CIE 1931 xy), identical across
-every sample checked (4 per model, different manufacture years). Coverage and area are
-computed against sRGB (0.64,0.33 / 0.30,0.60 / 0.15,0.06).
+Values as programmed by the manufacturer into each monitor (CIE 1931 xy); identical across
+the samples checked (3–4 per model, different manufacture years). Coverage and area are
+computed against sRGB and NTSC 1953.
 
-| Monitor | Red | Green | Blue | White | Gamma | sRGB coverage | Area vs NTSC |
-|---|---|---|---|---|---|---|---|
-| Samsung C24F390 | 0.6455, 0.3369 | 0.3281, 0.6152 | 0.1464, 0.0556 | 0.3134, 0.3291 | 2.2 | 94.5 % | 72.1 % |
-| Philips 243V7 | 0.6523, 0.3359 | 0.3212, 0.6103 | 0.1533, 0.0605 | 0.3134, 0.3291 | 2.2 | 95.0 % | 72.1 % |
-| Samsung S24F350 | 0.6503, 0.3330 | 0.3164, 0.6123 | 0.1523, 0.0673 | 0.3134, 0.3291 | 2.2 | 96.0 % | 72.0 % |
-| Dell P2419H | 0.6523, 0.3359 | 0.3212, 0.6103 | 0.1533, 0.0605 | 0.3134, 0.3291 | 2.2 | 95.0 % | 72.1 % |
-| Dell U2412M | 0.6396, 0.3300 | 0.2998, 0.5996 | 0.1503, 0.0595 | 0.3134, 0.3291 | 2.2 | 99.8 % | 70.7 % |
-| Dell U2415 | 0.6601, 0.3320 | 0.3017, 0.6132 | 0.1503, 0.0634 | 0.3134, 0.3291 | 2.2 | 99.8 % | 75.7 % |
-| Philips 223V5 | 0.6328, 0.3505 | 0.3222, 0.6298 | 0.1523, 0.0498 | 0.3134, 0.3291 | 2.2 | 92.0 % | 71.9 % |
-| Samsung S22F350 (code SAM0D1B) | 0.6337, 0.3515 | 0.3222, 0.6308 | 0.1523, 0.0507 | 0.3134, 0.3291 | 2.2 | 92.0 % | 72.1 % |
-| Samsung S22F350 (code SAM0D1A) | 0.6455, 0.3369 | 0.3281, 0.6152 | 0.1464, 0.0556 | 0.3134, 0.3291 | 2.2 | 94.5 % | 72.1 % |
-| AOC 2270W | 0.6328, 0.3505 | 0.3222, 0.6298 | 0.1523, 0.0498 | 0.3134, 0.3291 | 2.2 | 92.0 % | 71.9 % |
-| HP 24f | 0.6513, 0.3359 | 0.3203, 0.6093 | 0.1523, 0.0605 | 0.3125, 0.3281 | 2.2 | 95.4 % | 71.9 % |
+| Monitor | Red | Green | Blue | White | sRGB coverage | Area vs NTSC |
+|---|---|---|---|---|---|---|
+| Dell P2419H | 0.6523, 0.3359 | 0.3212, 0.6103 | 0.1533, 0.0605 | 0.3134, 0.3291 | 95.0 % | 72.1 % |
+| Dell U2412M | 0.6396, 0.3300 | 0.2998, 0.5996 | 0.1503, 0.0595 | 0.3134, 0.3291 | 99.8 % | 70.7 % |
+| Dell P2417H | 0.6523, 0.3359 | 0.3212, 0.6103 | 0.1533, 0.0605 | 0.3134, 0.3291 | 95.0 % | 72.1 % |
+| HP EliteDisplay E243 | 0.6386, 0.3574 | 0.3085, 0.6376 | 0.1523, 0.0693 | 0.3134, 0.3291 | 92.4 % | 73.1 % |
+| Lenovo T24i-10 | 0.6396, 0.3300 | 0.2998, 0.5996 | 0.1503, 0.0595 | 0.3134, 0.3291 | 99.8 % | 70.7 % |
+| HP LA2205wg | 0.6406, 0.3349 | 0.2978, 0.6113 | 0.1474, 0.0703 | 0.3134, 0.3291 | 96.5 % | 71.8 % |
+| EIZO EV2450 | 0.6552, 0.3349 | 0.3300, 0.6103 | 0.1503, 0.0595 | 0.3134, 0.3291 | 93.7 % | 72.3 % |
+| Lenovo LT2252p | 0.6445, 0.3417 | 0.3085, 0.6201 | 0.1513, 0.0585 | 0.3134, 0.3291 | 97.3 % | 73.5 % |
+| iiyama XU2492HSU (code IVM618E) | 0.6503, 0.3281 | 0.3115, 0.6191 | 0.1513, 0.0468 | 0.3134, 0.3291 | 97.3 % | 76.0 % |
+| iiyama XU2492HSU (code IVM612F) | 0.6474, 0.3330 | 0.3076, 0.6142 | 0.1533, 0.0458 | 0.3134, 0.3291 | 97.4 % | 74.8 % |
+| HP E24 G4 | 0.6230, 0.3359 | 0.2958, 0.6171 | 0.1435, 0.0664 | 0.3134, 0.3291 | 94.1 % | 70.5 % |
 
-**What this means for the gamut simulation (PRD Vraag 3):**
-- The values were found for all ten, so the condition "reconsider if research cannot find
+**What this means for the gamut simulation (PRD Vraag 3).**
+- Values were found for all ten, so the condition "reconsider if research cannot find
   them" is not met.
-- But they say these monitors cover **92–100 % of sRGB**. On a Mac that renders sRGB
-  content, the gamut matrix would change colours only slightly (most for the TN models
-  Philips 223V5 and AOC 2270W, around 8 % coverage loss).
-- They are nominal panel values, not measurements: Philips 243V7 = Dell P2419H, and
-  Philips 223V5 = AOC 2270W = one Samsung S22F350 panel source, so panel makers' datasheet
-  values are being copied. Real budget panels often measure below their nominal gamut.
-- The S22F350 ships with two panel sources (two codes, two sets of primaries).
+- They say these monitors cover **92–100 % of sRGB**, so the gamut matrix would change
+  colours only slightly. The HP E24 G4 is the clearest case: its red sits well inside
+  sRGB (x 0.623 against 0.64).
+- They are nominal panel values, not measurements. Two are exactly the sRGB standard
+  (Dell U2412M, Lenovo T24i-10), and the Dell P2419H and P2417H share one set, so panel
+  datasheet values are being copied. Real panels, especially aged ones, often measure
+  below them.
 
 ## 6. Sources
 
-- [A] displayspecifications.com model pages (third-party spec database; values read from
-  search-result extracts because the site blocks automated page loads): C24F390FH
-  `/en/model/5e083aa`, S24F350F `/en/model/29676ad`, S22F350F `/en/model/c4686af`,
-  P2419H `/en/model/4d1d1390`, U2415 `/en/model/f3cb58`, 223V5LSB `/en/model/1d9412df`,
-  HP 24f `/en/model/2a2712dd`.
-- [B] Philips 243V7QSB/01 leaflet, version 8.1.1, issue date 2024-03-25,
-  documents.philips.com (`…/20230608/6564caa612f14fe7ad23b01b00fa5d63.pdf`).
-- [C] Samsung business product pages: S24F350F (samsung.com/ie, `led-ls24f350fhuxen`),
-  S22F350FHU (samsung.com/ie, `led-ls22f350fhuxen`). Note: Samsung India lists the
-  S24F350FHW as AH-IPS; the Irish page says PLS.
 - [D] Dell P2419H data sheet (i.dell.com, `dell_24_monitor_p2419h_data_sheet.pdf`) and
   user's guide (dl.dell.com).
 - [E] TFTCentral review of the Dell U2412M, 24 August 2011 (manufacturer spec table and
   measurements).
-- [F] Earliest manufacture year in the linuxhw/EDID index for that model.
-- [G] Dell U2415 user's guide (dl.dell.com) and TFTCentral review of the U2415.
-- [H] Philips 223V5LSB product sheet (download.p4c.philips.com, `223v5lsb_00_pss_engie.pdf`).
-  The 223V5LSB2 variant lists 200 cd/m² and 600:1.
-- [I] AOC E2270SWN specification page, aoc.com/uk.
+- [F] Earliest manufacture year in the linuxhw/EDID index for that model (a check on the
+  release year).
 - [J] linuxhw/EDID decoded EDID files (github.com/linuxhw/EDID), CC-BY-4.0, credit
   required in the app's About window.
+- [K] Dell P2217H/P2317H/P2417H/P2717H user's guide (dl.dell.com).
+- [L] HP Store Canada listing and HP support specifications page for the HP EliteDisplay
+  E243 (support.hp.com, product 17210316). No QuickSpecs found.
+- [M] Lenovo PSREF, ThinkVision T24i-10 specifications and datasheet (psref.lenovo.com).
+- [N] HP QuickSpecs for the LA2205wg (NM274AA), as quoted on manualmachine.com /
+  manualsdir.com; CCFL per a Ukrainian retailer listing (compbest.com.ua). Treat as
+  secondary.
+- [O] HP Compaq LA1905wg/LA2205wg/LA2405wg user guide, Table A-2 (h10032.www1.hp.com,
+  `c03285508.pdf`).
+- [P] EIZO FlexScan EV2450 product page (eizo.com) and TFTCentral EV2450 review; release
+  per EIZO press release (EV2455/EV2450).
+- [Q] Lenovo PSREF ThinkVision LT2252p specifications (psref.lenovo.com); announced
+  September 2011 (Lenovo press release).
+- [R] iiyama ProLite XU2492HSU-B1 product page (iiyama.com).
+- [S] HP E24 G4 FHD Monitor QuickSpecs (h20195.www2.hp.com, `c06922717.pdf`) and
+  datasheet.
 - Prevalence: linux-hardware.org device pages (`?id=eisa:<vendor>-<code>`); vendor
-  shares: Statista (IDC, Q2 2022) and TAdviser (IDC, 2019–2020).
+  shares: Statista (IDC, Q2 2022), TAdviser (IDC, 2019–2020); fleet evidence: GSA
+  Auctions (computer.govsales.us, 2026-02-26), Insight certified refurbished monitors,
+  PCLiquidations, refurbed.
 
 ## 7. For Ernest to check
 
-1. **AOC 2270W attribution.** The EDID name "2270W" is most likely the AOC e2270Sw(n)
-   (TN, 21.5″); its primaries match the Philips 223V5 TN panel. The specs used are AOC's
-   E2270SWN page. Confidence: medium.
-2. **Philips 223V5 release year.** EDID data shows units from 2011, earlier than the
-   223V5LSB's usual 2013–2014 date; possibly an earlier 223V5 variant. Marked ≈ 2013.
-3. **Samsung S24F350 panel type.** PLS on the Irish page, AH-IPS on the Indian page. Both
-   are IPS-like; the profile uses IPS-like behaviour either way.
-4. **Gamut simulation.** Keep it (cheap, honest, small effect), or drop it for 2.0 now that
-   the values show little difference from sRGB? See §5.
-5. **Office bias.** The list is consumer-heavy because of the data source. HP E24 G4 and
-   Lenovo T24i are obvious additions once in-app or GitHub requests arrive.
+1. **HP LA2205wg backlight.** CCFL is likely but only secondary-sourced. It decides
+   whether the CCFL wear rate (PRD §7.3) applies.
+2. **HP EliteDisplay E243 gamut.** Not found for the E243 itself; only its sibling E243m
+   lists 72 % NTSC. The EDID primaries are used either way.
+3. **Gamut simulation.** Keep it (cheap, honest, small effect), or drop it for 2.0 now
+   that the values show little difference from sRGB? See §5.
+4. **Two models, one look.** Dell P2419H and P2417H share panel class and primaries;
+   their profiles will look nearly identical. Fine for "which monitor do I have", less so
+   for variety.
+
+## Appendix: first round (consumer-weighted)
+
+The first round ranked all mainstream models by computer counts alone and picked Samsung
+C24F390, Philips 243V7, Samsung S24F350, Dell P2419H, Dell U2412M, Dell U2415, Philips
+223V5, Samsung S22F350, AOC 2270W and HP 24f. Ernest set it aside on 2026-11-04 because
+it reflects home and budget use rather than the organisations the target designers work
+for. Its data (specs and EDID primaries for those ten) is in git history
+(commit `8d3d448`) and can seed later library additions.
