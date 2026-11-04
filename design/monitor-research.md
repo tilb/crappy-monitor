@@ -1,6 +1,8 @@
 # Monitor research: the ten monitors large organisations use most (2011–2026)
 
-_Status: draft for Ernest's review · Date: 2026-11-04 · For: PRD §8.1 (task T9)_
+_Status: accepted by Ernest on 2026-11-04 · For: PRD §8.1 (task T9)_
+
+**Review outcome (2026-11-04):** Ernest accepted the research as-is and will not research further. Doubtful values stay as they are, marked `≈` (estimated) or "—" (not found); in particular the HP LA2205wg is treated as CCFL (estimated) and the HP E243 has no spec gamut (EDID primaries are used). Gamut simulation stays in 2.0.
 
 The 2.0 library is for designers who design for people at work in healthcare, transport,
 call centres, government and other large organisations. So the question is not "which
