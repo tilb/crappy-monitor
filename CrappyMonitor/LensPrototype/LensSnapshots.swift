@@ -10,7 +10,14 @@ extension LensWindowController {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let m = model
         let steps: [(String, () -> Void)] = [
-            ("D1-strip", {}),
+            ("welcome-0", { m.captureState = .welcome }),
+            ("welcome-1", {}),
+            ("welcome-2", {}),
+            ("welcome-3", {}),
+            ("welcome-4", {}),
+            ("permission", { m.captureState = .needsPermission }),
+            ("relaunch", { m.captureState = .needsRelaunch }),
+            ("D1-strip", { m.captureState = .starting }),
             ("age-new", { m.age = .new }),
             ("age-10", { m.age = .ten }),
             ("nonretina-off", { m.age = .six; m.edits.nonRetina = false }),
@@ -23,6 +30,9 @@ extension LensWindowController {
             ("adjust", { m.infoKey = nil; m.edits.contrastRatio = 300; m.adjustShown = true }),
             ("D5-collapsed", { m.adjustShown = false; m.stripVisible = false }),
             ("back", { m.stripVisible = true; m.edits = MonitorFilter.Edits() }),
+            ("zoomed", { self.window?.performZoom(nil) }),
+            ("zoomed-strip", { m.stripVisible = true }),
+            ("unzoomed", { self.window?.performZoom(nil) }),
         ]
         func run(_ i: Int) {
             guard i < steps.count else { NSApp.terminate(nil); return }

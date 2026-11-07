@@ -901,7 +901,7 @@ Effort assumption: human-team vs CC ratios from the skill defaults (features ~30
   - Surfaced by: Scope Challenge R4 (Vraag 8), Section 1 R5/R6
   - Files: project.yml, CrappyMonitor.entitlements, spike target
   - Verify: manual checklist; falls back to Developer ID DMG + Sparkle ≥ 2.7.2 if any item fails
-- [ ] **T2 (P1, human: ~30min / CC: ~5min)** — build — Separate debug bundle ID `com.crappymonitor.app.debug`
+- [x] **T2 (P1, human: ~30min / CC: ~5min)** — build — Separate debug bundle ID `com.crappymonitor.app.debug`
   - Surfaced by: PRD §9 (prototype permission incident)
   - Files: project.yml
   - Verify: debug and release builds appear as two entries under Screen Recording
@@ -932,7 +932,7 @@ Effort assumption: human-team vs CC ratios from the skill defaults (features ~30
   - Surfaced by: Section 2 R7 (Vraag 11), Section 3 tests to retire
   - Files: CrappyMonitor/App/*, Display/*, ControlPanel/*, CrappyMonitorTests/*
   - Verify: no `CGSetDisplayTransferByTable`, `NSStatusBar` or `CGConfigureDisplayWithDisplayMode` left in the target
-- [ ] **T9 (P2, human: ~3 days / CC: ~2h)** — library — Research the ten monitors (specs, primaries, sources); schema v2 with version and `estimated` flags; decoding tests
+- [x] **T9 (P2, human: ~3 days / CC: ~2h)** — library — Research the ten monitors (specs, primaries, sources); schema v2 with version and `estimated` flags; decoding tests
   - Surfaced by: PRD §8.1, Scope correction #4
   - Files: CrappyMonitor/Resources/Presets.json, decoding tests
   - Verify: Ernest reviews every value and source; decoding test green
@@ -1026,15 +1026,16 @@ Effort assumption: UI features ~30x human ÷ CC.
   - Surfaced by: Pass 1 (1C), Pass 3 (3.2A)
   - Files: CrappyMonitor/Window/*, UI views
   - Verify: toggle via toolbar and ⌃⌘T; capsule appears each time; no Follow Pointer code left
-- [ ] **DT2 (P1, human: ~4h / CC: ~15min)** — onboarding — Permission screen with Continue before the system prompt; relaunch lands in the lens with the rank-1 monitor
+- [x] **DT2 (P1, human: ~4h / CC: ~15min)** — onboarding — Permission screen with Continue before the system prompt; relaunch lands in the lens with the rank-1 monitor
   - Surfaced by: Pass 3 (3.1A)
   - Files: CrappyMonitor/App/*, UI views
   - Verify: fresh account (tccutil reset), grant, Quit & Reopen → lens shows the screen
+  - Status 2026-11-07: the intro (live before/after of a sample screen through the rank-1 monitor, rendered by the real LensRenderer and ageing New → 10 years), Continue → system prompt → steps screen that notices the grant by itself → Relaunch (T11). Still open: the manual first-run check on a fresh account.
 - [ ] **DT3 (P2, human: ~3h / CC: ~10min)** — states — Loading spinner after 0.5 s, empty-favourites state, ≈ estimates and "—" in D4
   - Surfaced by: Pass 2 (2.1A, 2.2A, 2.3A)
   - Files: UI views
   - Verify: state table §5.1 walked through by hand
-- [ ] **DT4 (P2, human: ~3h / CC: ~10min)** — window — Green button zooms to fill (no full screen); strip auto-collapses while zoomed
+- [x] **DT4 (P2, human: ~3h / CC: ~10min)** — window — Green button zooms to fill (no full screen); strip auto-collapses while zoomed
   - Surfaced by: Pass 6 (6.1A, 6.2A)
   - Files: CrappyMonitor/Window/*
   - Verify: zoom/unzoom on two displays; View menu has no Enter Full Screen
@@ -1046,7 +1047,7 @@ Effort assumption: UI features ~30x human ÷ CC.
   - Surfaced by: Pass 6 (6.3A)
   - Files: UI views, CrappyMonitor/Window/*
   - Verify: VoiceOver walk-through and keyboard-only pass
-- [ ] **DT7 (P3, human: ~1h / CC: ~5min)** — adjust — Age control at the top of Adjust; ⌘0 not bound
+- [x] **DT7 (P3, human: ~1h / CC: ~5min)** — adjust — Age control at the top of Adjust; ⌘0 not bound
   - Surfaced by: Pass 7 (7.1B, 7.2A)
   - Files: UI views, main menu
   - Verify: change Age from the collapsed lens
@@ -1271,11 +1272,11 @@ Synthesized from this review's findings. Each task derives from a specific
 finding above. Run with Claude Code or Codex; checkbox as you ship.
 Effort assumption: features ~30x human ÷ CC.
 
-- [ ] **T11 (P1, human: ~3h / CC: ~15min)** — onboarding — Detect "granted, needs relaunch" and offer a Relaunch button that reopens this same app
+- [x] **T11 (P1, human: ~3h / CC: ~15min)** — onboarding — Detect "granted, needs relaunch" and offer a Relaunch button that reopens this same app
   - Surfaced by: Review 2 Scope #1 (Vraag 17)
   - Files: CrappyMonitor/App/*, CrappyMonitor/Capture/*, permission view
   - Verify: capture-state tests; manual grant → Later → Relaunch
-- [ ] **T12 (P1, human: ~4h / CC: ~20min)** — window — Window-layout state machine: zoom, auto-collapse, manual collapse, un-zoom restore
+- [x] **T12 (P1, human: ~4h / CC: ~20min)** — window — Window-layout state machine: zoom, auto-collapse, manual collapse, un-zoom restore
   - Surfaced by: Review 2 Section 1 #4 (Vraag 18)
   - Files: CrappyMonitor/Window/*, tests
   - Verify: table tests; manual zoom/unzoom with and without strip
@@ -1283,11 +1284,11 @@ Effort assumption: features ~30x human ÷ CC.
   - Surfaced by: Review 2 Scope #2
   - Files: spike target
   - Verify: green button zooms, never full screen, over a full-screen app
-- [ ] **T14 (P3, human: ~30min / CC: ~5min)** — library — First Presets entry is the first-run default; decoding test
+- [x] **T14 (P3, human: ~30min / CC: ~5min)** — library — First Presets entry is the first-run default; decoding test
   - Surfaced by: Review 2 Scope #3
   - Files: CrappyMonitor/Resources/Presets.json, tests
   - Verify: test green
-- [ ] **T15 (P3, human: ~30min / CC: ~5min)** — accessibility — Lens label without app name (replaces part of DT6)
+- [x] **T15 (P3, human: ~30min / CC: ~5min)** — accessibility — Lens label without app name (replaces part of DT6)
   - Surfaced by: Review 2 Section 2 #5 (Vraag 19)
   - Files: UI views
   - Verify: VoiceOver reads "Lens through [monitor], [age]"

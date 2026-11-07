@@ -13,15 +13,27 @@ struct LensRootView: View {
     let geometry: LensGeometry
 
     var body: some View {
-        VStack(spacing: 0) {
-            LensArea(model: model, capture: capture, geometry: geometry)
-            Divider()
-            if model.stripVisible {
-                StripView(model: model)
-            } else {
-                CollapsedFooter(model: model)
+        Group {
+            switch model.captureState {
+            case .welcome:
+                WelcomeView(model: model, renderer: geometry.renderer)
+            case .needsPermission:
+                PermissionStepsView()
+            case .needsRelaunch:
+                RelaunchView(model: model)
+            default:
+                VStack(spacing: 0) {
+                    LensArea(model: model, capture: capture, geometry: geometry)
+                    Divider()
+                    if model.stripVisible {
+                        StripView(model: model)
+                    } else {
+                        CollapsedFooter(model: model)
+                    }
+                }
             }
         }
+        .animation(.easeInOut(duration: 0.3), value: model.isOnboarding)
     }
 }
 
@@ -35,8 +47,8 @@ struct LensArea: View {
     var body: some View {
         ZStack(alignment: .top) {
             switch model.captureState {
-            case .needsPermission:
-                PermissionView()
+            case .welcome, .needsPermission, .needsRelaunch:
+                EmptyView()   // shown full-window by LensRootView
             case .failed(let message):
                 VStack(spacing: 10) {
                     Image(systemName: "exclamationmark.triangle").font(.system(size: 32)).foregroundStyle(.secondary)
@@ -108,45 +120,6 @@ struct LensCapsule<Content: View>: View {
             .shadow(color: .black.opacity(0.2), radius: 6, y: 2)
             .padding(.top, 14)
             .accessibilityElement(children: .combine)
-    }
-}
-
-struct PermissionView: View {
-    var body: some View {
-        // The small D5 window has no room for the icon; drop it rather than cut the text.
-        ViewThatFits(in: .vertical) {
-            content(showIcon: true)
-            content(showIcon: false)
-            ScrollView { content(showIcon: false) }
-        }
-    }
-
-    private func content(showIcon: Bool) -> some View {
-        VStack(spacing: 14) {
-            if showIcon {
-                Image(systemName: "rectangle.dashed.badge.record")
-                    .font(.system(size: 40))
-                    .foregroundStyle(.secondary)
-            }
-            Text("Allow screen recording to use the lens")
-                .font(.title3.weight(.semibold))
-            Text("The lens shows whatever is underneath it. macOS only lets an app see the screen after you turn it on in System Settings › Privacy & Security › Screen Recording. Nothing is saved or sent anywhere.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: 460)
-            HStack(spacing: 12) {
-                Button("Learn More") {
-                    NSWorkspace.shared.open(URL(string: "https://support.apple.com/guide/mac-help/mchld6aa7d23/mac")!)
-                }
-                Button("Open System Settings…") {
-                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
-                }
-                .keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(showIcon ? 24 : 16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

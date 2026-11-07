@@ -3,7 +3,12 @@ import Foundation
 
 /// All state of the lens window. Main thread only.
 final class LensModel: ObservableObject {
-    enum CaptureState: Equatable { case starting, running, needsPermission, failed(String) }
+    enum CaptureState: Equatable {
+        case welcome          // first run: the intro (PRD §5.2)
+        case needsPermission  // asked or declined: how to turn it on
+        case needsRelaunch    // turned on, active after a relaunch
+        case starting, running, failed(String)
+    }
 
     let library: MonitorLibrary
     private let defaults: UserDefaults
@@ -52,6 +57,14 @@ final class LensModel: ObservableObject {
 
     /// Set by the window controller; the "Try Again" button calls it.
     var retryCapture: (() -> Void)?
+    /// Set by the window controller: Continue on the intro, and Relaunch.
+    var continueFromWelcome: (() -> Void)?
+    var relaunch: (() -> Void)?
+
+    /// The first-run screens fill the whole window, without strip or toolbar.
+    var isOnboarding: Bool {
+        [.welcome, .needsPermission, .needsRelaunch].contains(captureState)
+    }
 
     init(library: MonitorLibrary, defaults: UserDefaults = .standard) {
         self.library = library

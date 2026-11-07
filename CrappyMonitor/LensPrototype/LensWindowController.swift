@@ -23,9 +23,9 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private var thumbTimer: Timer?
     private var optionMonitors: [Any] = []
     private var outsideClickMonitor: Any?
-    private var expandedFrame: NSRect?
-    private var isCompact = false
-    private var askedForPermission = false
+    private var layout = WindowLayout()      // zoom, strip collapse, compact size (PRD §5.4)
+    private var applyingLayout = false
+    private var permissionTimer: Timer?
     private var chromeUpdatePending = false
     private var lastPointerInLens: CGPoint?
 
@@ -62,10 +62,16 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         bind()
 
         model.retryCapture = { [weak self] in self?.startCapture() }
+        model.continueFromWelcome = { [weak self] in
+            ScreenRecordingPermission.request()   // the system prompt, only after Continue
+            self?.model.captureState = .needsPermission
+            self?.watchPermission()
+        }
+        model.relaunch = { ScreenRecordingPermission.relaunch() }
         capture.onStop = { [weak self] _ in
             guard let self else { return }
-            // A display that went away is fine: cover what is left. Anything else is shown.
-            guard ScreenCapture.hasPermission else { self.model.captureState = .needsPermission; return }
+            // A display that went away is fine: cover what is left. Lost permission is shown.
+            guard ScreenCapture.hasPermission else { self.startCaptureIfAllowed(); return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.updateCapture() }
         }
     }
@@ -119,16 +125,36 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
 
     // MARK: - Capture
 
+    /// First run and permission (PRD §5.2): the intro, the System Settings steps, the
+    /// relaunch, or straight into the lens.
     private func startCaptureIfAllowed() {
-        guard ScreenCapture.hasPermission else {
-            if !askedForPermission {
-                askedForPermission = true
-                CGRequestScreenCaptureAccess()   // system prompt, once
-            }
+        switch ScreenRecordingPermission.currentStep() {
+        case .lens:
+            stopWatchingPermission()
+            startCapture()
+        case .welcome:
+            model.captureState = .welcome
+        case .askSettings:
             model.captureState = .needsPermission
-            return
+            watchPermission()
+        case .relaunch:
+            stopWatchingPermission()
+            model.captureState = .needsRelaunch
         }
-        startCapture()
+    }
+
+    /// While the steps show, notice the switch in System Settings by itself.
+    private func watchPermission() {
+        guard permissionTimer == nil else { return }
+        permissionTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self, self.model.captureState == .needsPermission else { return }
+            self.startCaptureIfAllowed()
+        }
+    }
+
+    private func stopWatchingPermission() {
+        permissionTimer?.invalidate()
+        permissionTimer = nil
     }
 
     private func startCapture() {
@@ -153,18 +179,24 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
                     renderThumbnails(force: true)
                 }
             } catch {
-                model.captureState = ScreenCapture.hasPermission
-                    ? .failed(error.localizedDescription)
-                    : .needsPermission
+                if ScreenCapture.hasPermission {
+                    model.captureState = .failed(error.localizedDescription)
+                } else {
+                    startCaptureIfAllowed()
+                }
             }
         }
     }
 
     func windowDidMove(_ notification: Notification) {
         geometry.view?.driver?.redrawNow()
+        noteUserFrameChange()
         updateCapture()
     }
-    func windowDidResize(_ notification: Notification) { updateCapture() }
+    func windowDidResize(_ notification: Notification) {
+        noteUserFrameChange()
+        updateCapture()
+    }
     func windowDidChangeScreen(_ notification: Notification) { updateCapture() }
 
     /// Miniaturised, on another Space or fully covered: pause capture, drawing and
@@ -193,7 +225,8 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
 
     @objc private func appDidBecomeActive() {
-        if model.captureState == .needsPermission, ScreenCapture.hasPermission { startCapture() }
+        // Back from System Settings: re-check (the timer also does, every second).
+        if model.captureState == .needsPermission || model.captureState == .needsRelaunch { startCaptureIfAllowed() }
     }
 
     // MARK: - State → window
@@ -206,11 +239,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         // @Published emits on willSet, so hop to the next runloop turn to read new values.
         model.$stripVisible.dropFirst().removeDuplicates()
             .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.layoutForState()
-                self?.updateCapture()   // the lens grows or shrinks inside the window
-                self?.renderThumbnails(force: true)
-            }
+            .sink { [weak self] visible in self?.stripVisibilityChanged(to: visible) }
             .store(in: &cancellables)
         model.$resultsVisible.removeDuplicates()
             .receive(on: RunLoop.main)
@@ -245,6 +274,17 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
 
     private func updateChrome() {
         guard let window else { return }
+        // The first-run screens use the whole window, like a welcome window: no toolbar,
+        // no title.
+        let onboarding = model.isOnboarding
+        window.toolbar?.isVisible = !onboarding
+        window.titlebarAppearsTransparent = onboarding
+        if onboarding {
+            window.titleVisibility = .hidden
+            window.title = "Crappy Monitor"
+            window.subtitle = ""
+            return
+        }
         stripButton.state = model.stripVisible ? .on : .off
         if let field = searchItem?.searchField, field.stringValue != model.searchText {
             field.stringValue = model.searchText
@@ -263,24 +303,44 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         if model.resultsVisible { positionResults() }
     }
 
-    /// D5 uses a small window; the strip layout gets its old size back.
-    private func layoutForState() {
+    // MARK: - Window layout (PRD §5.4, T12)
+
+    /// The strip was shown or hidden. If the layout did not ask for it, the user did
+    /// (⌥⌘S, the toolbar button, "Show Strip"): let the layout decide the frame.
+    private func stripVisibilityChanged(to visible: Bool) {
         guard let window else { return }
-        syncToolbarItems()
-        let compact = !model.stripVisible
-        if compact {
-            if !isCompact { expandedFrame = window.frame }
-            let size = NSSize(width: 440, height: 330)
-            let f = window.frame
-            window.setFrame(NSRect(x: f.minX, y: f.maxY - size.height, width: size.width, height: size.height),
-                            display: true, animate: true)
-        } else if let f = expandedFrame {
-            let top = window.frame.maxY
-            window.setFrame(NSRect(x: window.frame.minX, y: top - f.height, width: f.width, height: f.height),
-                            display: true, animate: true)
-            expandedFrame = nil
+        if visible == layout.stripCollapsed, let frame = layout.toggleStrip(current: window.frame) {
+            apply(frame)
         }
-        isCompact = compact
+        syncStripFromLayout()
+        syncToolbarItems()
+        updateCapture()   // the lens grows or shrinks inside the window
+        renderThumbnails(force: true)
+    }
+
+    /// The green button and Window › Zoom: fill the display's visible area, never full screen.
+    func windowShouldZoom(_ window: NSWindow, toFrame newFrame: NSRect) -> Bool {
+        let visible = window.screen?.visibleFrame ?? newFrame
+        if let frame = layout.toggleZoom(current: window.frame, visible: visible) { apply(frame) }
+        syncStripFromLayout()
+        return false   // we set the frame ourselves
+    }
+
+    private func noteUserFrameChange() {
+        guard !applyingLayout, let window else { return }
+        layout.userChangedFrame(window.frame, visible: window.screen?.visibleFrame ?? window.frame)
+        syncStripFromLayout()
+    }
+
+    private func syncStripFromLayout() {
+        let visible = !layout.stripCollapsed
+        if model.stripVisible != visible { model.stripVisible = visible }
+    }
+
+    private func apply(_ frame: NSRect) {
+        applyingLayout = true
+        window?.setFrame(frame, display: true, animate: !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+        applyingLayout = false
     }
 
     /// D5 shows only the strip toggle and no search; otherwise a narrow window pushes the
@@ -500,6 +560,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         rebuildMonitorMenu()
         add("Window", [
             item("Minimize", #selector(NSWindow.performMiniaturize(_:)), "m"),
+            item("Zoom", #selector(NSWindow.performZoom(_:)), ""),
             item("Close", #selector(NSWindow.performClose(_:)), "w"),
         ])
         add("Debug", [
