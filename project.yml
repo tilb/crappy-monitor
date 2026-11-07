@@ -44,33 +44,6 @@ targets:
         excludes:
           - "**/*.entitlements"
 
-  # M0 sandbox spike (PRD §9, task T1): the prototype inside the App Sandbox.
-  LensSandboxSpike:
-    type: application
-    platform: macOS
-    info:
-      path: Spike/Info.plist
-      properties:
-        LSUIElement: false
-        NSPrincipalClass: NSApplication
-        LSMinimumSystemVersion: "13.0"
-        CFBundleDisplayName: Crappy Monitor Sandbox Spike
-    entitlements:
-      path: Spike/LensSandboxSpike.entitlements
-      properties:
-        com.apple.security.app-sandbox: true
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.crappymonitor.spike
-        PRODUCT_NAME: LensSandboxSpike
-        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) SANDBOX_SPIKE"
-        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
-    sources:
-      - path: CrappyMonitor
-        excludes:
-          - "**/*.entitlements"
-          - "Resources/Info.plist"
-
   CrappyMonitorTests:
     type: bundle.unit-test
     platform: macOS

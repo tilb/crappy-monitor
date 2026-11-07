@@ -1,12 +1,13 @@
+#if DEBUG
 import AppKit
 import os.log
 import ScreenCaptureKit
 
-// LENS PROTOTYPE — M0 sandbox spike (PRD §9, task T1). Throwaway.
-// Proves inside the App Sandbox: capture of every display, window collection
-// behaviour and Carbon hot keys. (Click-through and display gamma were checked on
-// 2026-11-02 and removed with those features; results in PRD §9.) Results go to
-// the unified log (subsystem com.crappymonitor.app, category Spike).
+// Debug › Run Sandbox Checks (PRD §9, tasks T1 and T13). The app itself runs in the
+// App Sandbox; this proves on a given Mac that capture of every display, the window
+// behaviour (full-screen auxiliary, green button zooms) and the hot keys work in it.
+// Results go to the unified log (subsystem com.crappymonitor.app, category Spike):
+//   log show --last 2m --predicate 'subsystem == "com.crappymonitor.app" AND category == "Spike"'
 
 private let spikeLog = Logger(subsystem: "com.crappymonitor.app", category: "Spike")
 
@@ -19,7 +20,21 @@ extension LensWindowController {
             spikeLog.notice("SPIKE collectionBehavior=\(w.collectionBehavior.rawValue, privacy: .public) fullScreenAuxiliary=\(w.collectionBehavior.contains(.fullScreenAuxiliary), privacy: .public) level=\(w.level.rawValue, privacy: .public)")
         }
         spikeLog.notice("SPIKE screenCapturePreflight=\(CGPreflightScreenCaptureAccess(), privacy: .public)")
+        checkGreenButton()
         Task { await Self.checkEveryDisplay() }
+    }
+
+    /// T13: the green button must zoom to the visible area and back, never full screen.
+    private func checkGreenButton() {
+        guard let w = window, let visible = w.screen?.visibleFrame else { return }
+        let before = w.frame
+        let primary = w.collectionBehavior.contains(.fullScreenPrimary)
+        w.performZoom(nil)
+        let zoomed = w.frame
+        w.performZoom(nil)
+        let restored = w.frame
+        func same(_ a: NSRect, _ b: NSRect) -> Bool { abs(a.minX - b.minX) < 1 && abs(a.minY - b.minY) < 1 && abs(a.width - b.width) < 1 && abs(a.height - b.height) < 1 }
+        spikeLog.notice("SPIKE greenButton fullScreenPrimary=\(primary, privacy: .public) fillsVisible=\(same(zoomed, visible), privacy: .public) restores=\(same(restored, before), privacy: .public) inFullScreen=\(w.styleMask.contains(.fullScreen), privacy: .public)")
     }
 
     /// Starts a 2-second stream on every display and counts complete frames.
@@ -56,3 +71,4 @@ private final class FrameCounter: NSObject, SCStreamOutput {
         lock.lock(); _count += 1; lock.unlock()
     }
 }
+#endif

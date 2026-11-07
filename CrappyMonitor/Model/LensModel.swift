@@ -53,6 +53,9 @@ final class LensModel: ObservableObject {
     @Published var adjustShown = false
 
     @Published var captureState: CaptureState = .starting
+    /// The lens has drawn a captured frame since capture (re)started; until then the
+    /// loading capsule may show (PRD §5.1).
+    @Published var lensHasFrame = false
     @Published var thumbnails: [String: NSImage] = [:]
 
     /// Set by the window controller; the "Try Again" button calls it.

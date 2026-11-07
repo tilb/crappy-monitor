@@ -43,6 +43,7 @@ struct LensArea: View {
     @ObservedObject var model: LensModel
     let capture: ScreenCapture
     let geometry: LensGeometry
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -63,9 +64,11 @@ struct LensArea: View {
                     .accessibilityLabel("Lens through \(model.name(model.previewID ?? model.activeID)), \(model.age.label)")
             }
 
-            if model.captureState == .running {
+            if (model.captureState == .starting || model.captureState == .running) && !model.lensHasFrame {
+                LoadingCapsule()
+            } else if model.captureState == .running {
                 if model.showsOriginal {
-                    LensCapsule {
+                    LensCapsule(announcement: "Showing original") {
                         Label("Showing original", systemImage: "option").fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -83,7 +86,7 @@ struct LensArea: View {
                 }
             }
         }
-        .animation(.easeOut(duration: 0.12), value: model.previewID)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: model.previewID)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -108,6 +111,8 @@ struct LensSurface: NSViewRepresentable {
 }
 
 struct LensCapsule<Content: View>: View {
+    /// Spoken by VoiceOver when the capsule appears (PRD §5.4, 6.3A).
+    var announcement: String? = nil
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -120,6 +125,42 @@ struct LensCapsule<Content: View>: View {
             .shadow(color: .black.opacity(0.2), radius: 6, y: 2)
             .padding(.top, 14)
             .accessibilityElement(children: .combine)
+            .onAppear { if let announcement { Accessibility.announce(announcement) } }
+    }
+}
+
+/// "Starting the lens…", only when the first frame takes longer than 0.5 s (PRD §5.1, 2.2).
+struct LoadingCapsule: View {
+    @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        // Always in the hierarchy (an empty view never appears, so its task would never
+        // run); invisible until the first frame is late.
+        LensCapsule {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Starting the lens…").fontWeight(.semibold)
+            }
+        }
+        .opacity(shown ? 1 : 0)
+        .accessibilityHidden(!shown)
+        .task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { shown = true }
+            Accessibility.announce("Starting the lens")
+        }
+    }
+}
+
+enum Accessibility {
+    /// Asks VoiceOver to speak `text` now.
+    static func announce(_ text: String) {
+        guard let element = NSApp.keyWindow ?? NSApp.mainWindow else { return }
+        NSAccessibility.post(element: element, notification: .announcementRequested,
+                             userInfo: [.announcement: text,
+                                        .priority: NSAccessibilityPriorityLevel.high.rawValue])
     }
 }
 

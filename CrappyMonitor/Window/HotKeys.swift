@@ -2,13 +2,11 @@ import Carbon.HIToolbox
 import Foundation
 import os.log
 
-private let hotKeyLog = Logger(subsystem: "com.crappymonitor.app", category: "Spike")
+private let hotKeyLog = Logger(subsystem: "com.crappymonitor.app", category: "HotKeys")
 
-// LENS PROTOTYPE — throwaway.
-
-/// System-wide shortcuts (⌃⌘L / ⌃⌘W / ⌃⌘P) that work while another app is in
-/// front, which matters in Follow Pointer mode and when the screen is degraded.
-/// Carbon hot keys need no Accessibility permission, unlike a global key monitor.
+/// System-wide shortcuts (⌃⌘L shows the lens) that work while another app is in front.
+/// Carbon hot keys need no Accessibility permission, unlike a global key monitor, and
+/// work in the App Sandbox (M0 spike).
 final class HotKeys {
     private var refs: [EventHotKeyRef] = []
     private var actions: [UInt32: () -> Void] = [:]

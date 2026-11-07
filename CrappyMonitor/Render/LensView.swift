@@ -99,8 +99,9 @@ final class LensViewDriver: NSObject, MTKViewDelegate {
               let cmd = renderer.makeCommandBuffer() else { return }
         lastDraw = CACurrentMediaTime()
         drawCount += 1
-        if let job = job(for: view) {
+        if let job = job(for: view), !job.parts.isEmpty {
             renderer.encode(into: cmd, pass: pass, job: job)
+            if model?.lensHasFrame == false { model?.lensHasFrame = true }
         } else if let enc = cmd.makeRenderCommandEncoder(descriptor: pass) {
             enc.endEncoding()   // clear only
         }

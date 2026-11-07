@@ -26,12 +26,16 @@ struct StripView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: 6) {
-                        ForEach(model.stripFavourites, id: \.self) { id in
-                            TileView(model: model, id: id, slot: .favourite)
+                if model.favourites.isEmpty {
+                    EmptyFavourites { model.openBrowseAll() }
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(alignment: .top, spacing: 6) {
+                            ForEach(model.stripFavourites, id: \.self) { id in
+                                TileView(model: model, id: id, slot: .favourite)
+                            }
+                            MoreTile { model.openBrowseAll() }
                         }
-                        MoreTile { model.openBrowseAll() }
                     }
                 }
             }
@@ -170,6 +174,22 @@ struct TileView: View {
         if isActive { parts.append("active") }
         if slot == .favourite, let i = model.favourites.firstIndex(of: id) { parts.append("favourite \(i + 1)") }
         return parts.joined(separator: ", ")
+    }
+}
+
+/// No favourites yet (PRD §5.1, 2.1).
+struct EmptyFavourites: View {
+    let choose: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Add the monitors you check often")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            Button("Choose Monitors…", action: choose)
+        }
+        .frame(maxWidth: .infinity, minHeight: LensModel.thumbnailSize.height + 24, alignment: .leading)
+        .accessibilityElement(children: .contain)
     }
 }
 

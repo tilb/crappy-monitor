@@ -1,14 +1,25 @@
 #if DEBUG
 import AppKit
 
-// Debug only. `--lens-snapshots <dir>` walks through the D1–D5
+// Debug only. `--lens-snapshots <dir>` walks through the first run and the D1–D5
 // states and writes every visible app window to PNG, so layout can be checked
 // without Screen Recording permission for the terminal. The lens area itself
 // (Metal) is not part of these images.
 extension LensWindowController {
-    func runSnapshotTour(to dir: URL) {
+    func runSnapshotTour(to requested: URL) {
+        // The App Sandbox only lets the app write inside its container: fall back to its
+        // temporary folder (~/Library/Containers/<bundle id>/Data/tmp/lens-snapshots).
+        var dir = requested
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        if !FileManager.default.isWritableFile(atPath: dir.path) {
+            dir = FileManager.default.temporaryDirectory.appendingPathComponent("lens-snapshots")
+            try? FileManager.default.removeItem(at: dir)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+        print("Lens snapshots: \(dir.path)")
+        tourMode = true
         let m = model
+        var savedFavourites: [String] = []
         let steps: [(String, () -> Void)] = [
             ("welcome-0", { m.captureState = .welcome }),
             ("welcome-1", {}),
@@ -17,7 +28,9 @@ extension LensWindowController {
             ("welcome-4", {}),
             ("permission", { m.captureState = .needsPermission }),
             ("relaunch", { m.captureState = .needsRelaunch }),
-            ("D1-strip", { m.captureState = .starting }),
+            ("D1-strip", { m.captureState = .starting; m.lensHasFrame = false }),
+            ("empty-favourites", { savedFavourites = m.favourites; m.favourites = [] }),
+            ("favourites-back", { m.favourites = savedFavourites }),
             ("age-new", { m.age = .new }),
             ("age-10", { m.age = .ten }),
             ("nonretina-off", { m.age = .six; m.edits.nonRetina = false }),

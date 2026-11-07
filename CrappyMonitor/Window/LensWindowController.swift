@@ -26,6 +26,10 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private var layout = WindowLayout()      // zoom, strip collapse, compact size (PRD §5.4)
     private var applyingLayout = false
     private var permissionTimer: Timer?
+    #if DEBUG
+    /// The snapshot tour sets the states itself; capture and permission checks stay out.
+    var tourMode = false
+    #endif
     private var chromeUpdatePending = false
     private var lastPointerInLens: CGPoint?
 
@@ -48,9 +52,9 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         // A lens floats over the app you are looking at, like Sim Daltonism.
         window.level = .floating
         // Over full-screen apps and along to the active Space (PRD R6); never its own
-        // full-screen Space, so the green button zooms (PRD 6.1A). Verified by the spike.
+        // full-screen Space, so the green button zooms (PRD 6.1A). Verified in the sandbox (M0).
         window.collectionBehavior = [.fullScreenAuxiliary, .moveToActiveSpace]
-        window.setFrameAutosaveName("LensPrototypeWindow")
+        window.setFrameAutosaveName("LensWindow")
         super.init(window: window)
 
         window.delegate = self
@@ -88,7 +92,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         if NSApp.mainMenu?.items.count ?? 0 < 2 { installMainMenu() }
         registerHotKeys()
         watchOptionKey()
-        if window?.isVisible != true, !(window?.setFrameUsingName("LensPrototypeWindow") ?? false) {
+        if window?.isVisible != true, !(window?.setFrameUsingName("LensWindow") ?? false) {
             window?.center()
         }
         showWindow(nil)
@@ -96,9 +100,6 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
         NSApp.activate(ignoringOtherApps: true)
         startCaptureIfAllowed()
         restartThumbTimer()
-        #if SANDBOX_SPIKE
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.runSandboxChecks(nil) }
-        #endif
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -128,6 +129,9 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     /// First run and permission (PRD §5.2): the intro, the System Settings steps, the
     /// relaunch, or straight into the lens.
     private func startCaptureIfAllowed() {
+        #if DEBUG
+        if tourMode { return }
+        #endif
         switch ScreenRecordingPermission.currentStep() {
         case .lens:
             stopWatchingPermission()
@@ -159,6 +163,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
 
     private func startCapture() {
         model.captureState = .starting
+        model.lensHasFrame = false
         updateCapture()
     }
 
@@ -168,6 +173,9 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     /// Starts streams for the displays under the lens and stops the others (PRD §6, Vraag 9).
     /// Called on start and whenever the window moves, resizes or the displays change.
     private func updateCapture() {
+        #if DEBUG
+        if tourMode { return }
+        #endif
         guard model.captureState == .running || model.captureState == .starting,
               isOnScreen || model.captureState == .starting,
               let rect = lensRect else { return }
@@ -422,7 +430,7 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
     // MARK: - Toolbar
 
     private func setupToolbar() {
-        let toolbar = NSToolbar(identifier: "LensPrototypeToolbar")
+        let toolbar = NSToolbar(identifier: "LensToolbar")
         toolbar.delegate = self
         toolbar.displayMode = .iconOnly
         toolbar.allowsUserCustomization = false
@@ -563,11 +571,14 @@ final class LensWindowController: NSWindowController, NSWindowDelegate, NSToolba
             item("Zoom", #selector(NSWindow.performZoom(_:)), ""),
             item("Close", #selector(NSWindow.performClose(_:)), "w"),
         ])
+        #if DEBUG
+        // Release builds keep "still thumbnails" as a hidden default (lens.stillThumbnails).
         add("Debug", [
             item("Still Thumbnails (Every 3 s)", #selector(toggleStillThumbnails(_:)), target: self),
             .separator(),
             item("Run Sandbox Checks", #selector(runSandboxChecks(_:)), target: self),
         ])
+        #endif
         NSApp.mainMenu = main
     }
 

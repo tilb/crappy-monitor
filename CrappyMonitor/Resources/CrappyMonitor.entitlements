@@ -2,5 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+	<!-- Required for the Mac App Store (PRD §9). Capture, hot keys, the window
+	     behaviour and opening System Settings all work inside it (M0 spike). -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+</dict>
 </plist>

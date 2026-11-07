@@ -897,10 +897,11 @@ Synthesized from this review's findings. Each task derives from a specific
 finding above. Run with Claude Code or Codex; checkbox as you ship.
 Effort assumption: human-team vs CC ratios from the skill defaults (features ~30x, architecture ~5x, research ~3x), adjusted per task.
 
-- [ ] **T1 (P1, human: ~1 day / CC: ~1h)** — distribution — Sandbox spike: capture on two displays, lens over full-screen Spaces, click-through/Follow Pointer, Carbon hot keys in a sandboxed build
+- [x] **T1 (P1, human: ~1 day / CC: ~1h)** — distribution — Sandbox spike: capture on two displays, lens over full-screen Spaces, click-through/Follow Pointer, Carbon hot keys in a sandboxed build
   - Surfaced by: Scope Challenge R4 (Vraag 8), Section 1 R5/R6
   - Files: project.yml, CrappyMonitor.entitlements, spike target
   - Verify: manual checklist; falls back to Developer ID DMG + Sparkle ≥ 2.7.2 if any item fails
+  - Status 2026-11-07: the app itself now runs in the App Sandbox (entitlement on the main target); the separate spike target is gone and its checks live in Debug › Run Sandbox Checks. Click-through and Follow Pointer were dropped. The two-display and full-screen checks are in Ernest's manual list.
 - [x] **T2 (P1, human: ~30min / CC: ~5min)** — build — Separate debug bundle ID `com.crappymonitor.app.debug`
   - Surfaced by: PRD §9 (prototype permission incident)
   - Files: project.yml
@@ -1022,19 +1023,21 @@ Synthesized from this review's findings. Each task derives from a specific
 finding above. Run with Claude Code or Codex; checkbox as you ship.
 Effort assumption: UI features ~30x human ÷ CC.
 
-- [ ] **DT1 (P1, human: ~4h / CC: ~15min)** — window — Single click-through toggle (`cursorarrow.rays`), remove Follow Pointer and ⌃⌘P, 3-second hint capsule
+- [x] **DT1 (P1, human: ~4h / CC: ~15min)** — window — Single click-through toggle (`cursorarrow.rays`), remove Follow Pointer and ⌃⌘P, 3-second hint capsule
   - Surfaced by: Pass 1 (1C), Pass 3 (3.2A)
   - Files: CrappyMonitor/Window/*, UI views
   - Verify: toggle via toolbar and ⌃⌘T; capsule appears each time; no Follow Pointer code left
+  - Status 2026-11-07: dropped: click-through and Follow Pointer are out of 2.0 (Change after the reviews).
 - [x] **DT2 (P1, human: ~4h / CC: ~15min)** — onboarding — Permission screen with Continue before the system prompt; relaunch lands in the lens with the rank-1 monitor
   - Surfaced by: Pass 3 (3.1A)
   - Files: CrappyMonitor/App/*, UI views
   - Verify: fresh account (tccutil reset), grant, Quit & Reopen → lens shows the screen
   - Status 2026-11-07: the intro (live before/after of a sample screen through the rank-1 monitor, rendered by the real LensRenderer and ageing New → 10 years), Continue → system prompt → steps screen that notices the grant by itself → Relaunch (T11). Still open: the manual first-run check on a fresh account.
-- [ ] **DT3 (P2, human: ~3h / CC: ~10min)** — states — Loading spinner after 0.5 s, empty-favourites state, ≈ estimates and "—" in D4
+- [x] **DT3 (P2, human: ~3h / CC: ~10min)** — states — Loading spinner after 0.5 s, empty-favourites state, ≈ estimates and "—" in D4
   - Surfaced by: Pass 2 (2.1A, 2.2A, 2.3A)
   - Files: UI views
   - Verify: state table §5.1 walked through by hand
+  - Status 2026-11-07: loading capsule "Starting the lens…" after 0.5 s without a frame; empty favourites shows "Add the monitors you check often" + Choose Monitors…; ≈ and — in D4 since T8.
 - [x] **DT4 (P2, human: ~3h / CC: ~10min)** — window — Green button zooms to fill (no full screen); strip auto-collapses while zoomed
   - Surfaced by: Pass 6 (6.1A, 6.2A)
   - Files: CrappyMonitor/Window/*
@@ -1043,10 +1046,12 @@ Effort assumption: UI features ~30x human ÷ CC.
   - Surfaced by: Pass 5 (5.1A)
   - Files: UI views
   - Verify: light/dark, Increase Contrast (3 pt border), Reduce Transparency
-- [ ] **DT6 (P2, human: ~3h / CC: ~15min)** — accessibility — VoiceOver announcements, lens label, focus order per §5.4
+  - Status 2026-11-07: symbols checked: all exist and come from SF Symbols 1–3 (macOS 12+). Still open: the Increase Contrast and Reduce Transparency pass.
+- [x] **DT6 (P2, human: ~3h / CC: ~15min)** — accessibility — VoiceOver announcements, lens label, focus order per §5.4
   - Surfaced by: Pass 6 (6.3A)
   - Files: UI views, CrappyMonitor/Window/*
   - Verify: VoiceOver walk-through and keyboard-only pass
+  - Status 2026-11-07: VoiceOver announces the "Showing original" and "Starting the lens" capsules; the lens label is "Lens through [monitor], [age]"; Reduce Motion removes the capsule fades; focus follows the layout (toolbar → lens → strip → Age → Adjust). Still open: Ernest's VoiceOver and keyboard-only pass.
 - [x] **DT7 (P3, human: ~1h / CC: ~5min)** — adjust — Age control at the top of Adjust; ⌘0 not bound
   - Surfaced by: Pass 7 (7.1B, 7.2A)
   - Files: UI views, main menu
@@ -1280,10 +1285,11 @@ Effort assumption: features ~30x human ÷ CC.
   - Surfaced by: Review 2 Section 1 #4 (Vraag 18)
   - Files: CrappyMonitor/Window/*, tests
   - Verify: table tests; manual zoom/unzoom with and without strip
-- [ ] **T13 (P2, human: ~1h / CC: ~5min)** — spike — Add the green-button/auxiliary check to the M0 sandbox spike
+- [x] **T13 (P2, human: ~1h / CC: ~5min)** — spike — Add the green-button/auxiliary check to the M0 sandbox spike
   - Surfaced by: Review 2 Scope #2
   - Files: spike target
   - Verify: green button zooms, never full screen, over a full-screen app
+  - Status 2026-11-07: Debug › Run Sandbox Checks logs whether the green button fills the visible area, restores, and never enters full screen.
 - [x] **T14 (P3, human: ~30min / CC: ~5min)** — library — First Presets entry is the first-run default; decoding test
   - Surfaced by: Review 2 Scope #3
   - Files: CrappyMonitor/Resources/Presets.json, tests
